@@ -1,0 +1,5 @@
+# frozen_string_literal: true
+
+RSpec.describe Integer do
+  it { expect(7.bits).to eq 3 }
+end

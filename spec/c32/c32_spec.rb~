@@ -1,0 +1,7 @@
+# frozen_string_literal: true
+
+module C32
+  RSpec.describe C32 do
+    it { expect(C32.new).to be_a C32 }
+  end
+end
