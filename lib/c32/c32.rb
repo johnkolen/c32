@@ -5,11 +5,24 @@ module C32
     attr_accessor :tbl
     attr_reader :zero
 
-    def initialize n
+    def initialize n=nil, **options
       @tbl = []
-      while 0 < n
-        @tbl.push n & 1
-        n >>= 1
+      if options.empty?
+        raise "missing n" if n.nil?
+        while 0 < n
+          @tbl.push n & 1
+          n >>= 1
+        end
+      else
+        options.each do |idx, v|
+          if idx.is_a? Integer
+            @tbl[idx] = v
+          end
+        end
+        @tbl[@tbl.size] = 0
+        0.upto(@tbl.size - 1) do |idx|
+          @tbl[idx] ||= 0
+        end
       end
       @zero = @tbl.size
       @tbl.size.times do
@@ -91,6 +104,8 @@ module C32
     end
 
     def adj_1
+      changed = false
+      check = to_i
       (@zero - 1).downto(0) do |base|
         u = @tbl[base - 1]
         next if u.zero?
@@ -108,6 +123,8 @@ module C32
               @tbl[base + 1] |= i1
               @tbl[base] |= i0
               @tbl[base - 1] ^= (j * 2)
+              changed = true
+              puts "found 1 #{base}"
             else
               puts "found 1 but skipping #{base}"
             end
@@ -118,12 +135,18 @@ module C32
           u >>= 1
         end
       end
+      if changed
+        puts to_s
+        raise "mismatch #{check} #{to_i}" if check != to_i
+      end
+      changed
     end
 
     def adj_11
       changed = false
+      check = to_i
       (@zero - 1).downto(0) do |base|
-        u = @tbl[base - 1]
+        u = @tbl[base]
         next if u.zero?
         # 1      :
         # 0      :- equals 4
@@ -132,14 +155,15 @@ module C32
         j = 1
         while 0 < u
           if u & 3 == 3
-            if (@tbl[base + 1] & i1).zero?
-              @tbl[base + 1] |= i1
-              @tbl[base - 1] ^= (j * 3)
+            if (@tbl[base + 2] & i1).zero?
+              @tbl[base + 2] |= i1
+              @tbl[base] ^= (j * 3)
               # take an extra step because 11 becomes 00
               i1 <<= 1
               j <<= 1
               u >>= 1
               changed = true
+              puts "found 101 #{base}"
             else
               puts "found 11 but skipping #{base}"
             end
@@ -149,13 +173,18 @@ module C32
           u >>= 1
         end
       end
+      if changed
+        puts to_s
+        raise "mismatch #{check} #{to_i}" if check != to_i
+      end
       changed
     end
 
     def adj_101
       changed = false
+      check = to_i
       (@zero - 1).downto(0) do |base|
-        u = @tbl[base - 1]
+        u = @tbl[base]
         # 1    :
         # 01   :- equals 10
         # 101  to_3 = 10
@@ -164,12 +193,13 @@ module C32
         j = 1
         while 0 < u
           if u & 5 == 5  # 101.to_3 = 10
-            if (@tbl[base + 1] & i1).zero? &&
-               (@tbl[base] & i0).zero?
-              @tbl[base + 1] |= i1
-              @tbl[base] |= i0
-              @tbl[base - 1] ^= (j * 5)
+            if (@tbl[base + 2] & i1).zero? &&
+               (@tbl[base + 1] & i0).zero?
+              @tbl[base + 2] |= i1
+              @tbl[base + 1] |= i0
+              @tbl[base] ^= (j * 5)
               changed = true
+              puts "found 101 #{base}"
             else
               puts "found 101 but skipping #{base}"
             end
@@ -180,12 +210,18 @@ module C32
           u >>= 1
         end
       end
+      if changed
+        puts to_s
+        raise "mismatch #{check} #{to_i}" if check != to_i
+      end
       changed
     end
 
     def adj_1001
+      changed = false
+      check = to_i
       (@zero - 1).downto(0) do |base|
-        u = @tbl[base - 1]
+        u = @tbl[base]
         next if u.zero?
         # 1     :
         # 0110  :- equals 28
@@ -195,11 +231,13 @@ module C32
         j = 1
         while 0 < u
           if u & 9 == 9  # 101.to_3 = 10
-            if (@tbl[base + 1] & i1).zero? &&
-               (@tbl[base] & i0).zero?
-              @tbl[base + 1] |= i1
-              @tbl[base] |= i0
-              @tbl[base - 1] ^= (j * 9)
+            if (@tbl[base + 2] & i1).zero? &&
+               (@tbl[base + 1] & i0).zero?
+              @tbl[base + 2] |= i1
+              @tbl[base + 1] |= i0
+              @tbl[base] ^= (j * 9)
+              changed = true
+              puts "found 1001 #{base}"
             else
               puts "found 1001 but skipping #{base}"
             end
@@ -210,11 +248,18 @@ module C32
           u >>= 1
         end
       end
+      if changed
+        puts to_s
+        raise "mismatch #{check} #{to_i}" if check != to_i
+      end
+      changed
     end
 
     def adj_10001
+      changed = false
+      check = to_i
       (@zero - 1).downto(0) do |base|
-        u = @tbl[base - 1]
+        u = @tbl[base]
         next if u.zero?
         # 1      :
         # 01110  :- equals 82
@@ -224,11 +269,14 @@ module C32
         j = 1
         while 0 < u
           if u & 17 == 17  # 101.to_3 = 10
-            if (@tbl[base + 1] & i1).zero? &&
-               (@tbl[base] & i0).zero?
-              @tbl[base + 1] |= i1
-              @tbl[base] |= i0
-              @tbl[base - 1] ^= (j * 17)
+            puts "#{base} #{u}"
+            if (@tbl[base + 2] & i1).zero? &&
+               (@tbl[base + 1] & i0).zero?
+              @tbl[base + 2] |= i1
+              @tbl[base + 1] |= i0
+              @tbl[base] ^= (j * 17)
+              changed = true
+              puts "found 10001 #{base}"
             else
               puts "found 10001 but skipping #{base}"
             end
@@ -239,6 +287,11 @@ module C32
           u >>= 1
         end
       end
+      if changed
+        puts to_s
+        raise "mismatch #{check} #{to_i}" if check != to_i
+      end
+      changed
     end
 
     def rotate
@@ -251,12 +304,10 @@ module C32
           fill_left z, base + 1
         end
       end
-      #adj_1
-      while adj_11 || adj_101 do
+      while adj_11 || adj_101 || adj_1001 || adj_10001 do
       end
-
-      adj_1001
-      adj_10001
+      while adj_1 do
+      end
       self
     end
 
@@ -290,10 +341,10 @@ module C32
       p = false
       nx = n
       while 1 < n
-        puts x.to_s if p
         x.iter
         nx = nx / 2 + (nx % 2)*(nx + 1)
         n = x.to_i
+        puts x.to_s if p
         raise "x.to_i = #{n}  nx = #{nx}" unless n == nx
         stats << [n, x.bits]
         if 0 < x.tbl[x.zero - 1]
