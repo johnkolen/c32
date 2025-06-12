@@ -7,6 +7,7 @@ module C32
 
     def initialize n=nil, **options
       @tbl = []
+      @zero = 0
       if options.empty?
         raise "missing n" if n.nil?
         while 0 < n
@@ -15,21 +16,28 @@ module C32
         end
       else
         options.each do |idx, v|
+          while idx + @zero < 0
+            @tbl.unshift 0
+            @zero += 1
+          end
           if idx.is_a? Integer
-            @tbl[idx] = v
+            @tbl[idx + @zero] = v
           end
         end
-        @tbl[@tbl.size] = 0
+        @tbl[@tbl.size - @zero + 1] = 0
         0.upto(@tbl.size - 1) do |idx|
           @tbl[idx] ||= 0
         end
       end
-      @zero = @tbl.size
-      @tbl.size.times do
-        @tbl.unshift 0
-      end
-      @tbl.push 0
-      @max_bin_width = (@tbl.size - 1) / 2
+      height = @tbl.size - @zero
+      @tbl.unshift 0
+      @zero += 1
+      #(height - @zero).times do
+      #  @tbl.unshift 0
+      #end
+      #@zero += (height - @zero)
+      #@tbl.push 0
+      #@max_bin_width = (@tbl.size - 1) / 2
     end
 
     alias old_dup dup
@@ -37,6 +45,81 @@ module C32
       u = old_dup
       u.tbl = tbl.dup
       u
+    end
+
+    def width
+      @tbl.map{|x| x.zero? ? 1 : Math.log2(x).ceil.to_i }.max
+    end
+
+    def fill_triangle
+      idx = @tbl.size - 1
+      idx -= 1 while @tbl[idx].zero?
+      v = 1
+      while @zero <= idx
+        @tbl[idx] = v
+        v += v + 1
+        idx -= 1
+      end
+      self
+    end
+
+    def fill_square
+      idx = @tbl.size - 1
+      idx -= 1 while @tbl[idx].zero?
+      v = 2**idx - 1
+      while @zero <= idx
+        @tbl[idx] = v
+        idx -= 1
+      end
+      self
+    end
+
+    def fill_circle
+      idx = @tbl.size - 1
+      idx -= 1 while @tbl[idx].zero?
+      r = idx
+      while @zero <= idx
+        u = Math.sqrt([0, r*r - (idx + 1)**2].max).ceil
+        v = Math.sqrt(r*r - (idx )**2).ceil
+        #puts "#{u}  #{v}"
+        @tbl[idx] = 2**((u + v)/ 2) - 1
+        idx -= 1
+      end
+      self
+    end
+
+    def fill_trapezoid
+      idx = @tbl.size - 1
+      idx -= 1 while @tbl[idx].zero?
+      d = 0
+      d = 1 if idx == 3
+      d = 3 if idx == 5
+      d = 1 if idx == 6
+      v = 2**(((idx - @zero) / 4.0).ceil + d) - 1
+      while @zero <= idx
+        @tbl[idx] = v
+        v += v + 1
+        idx -= 1
+      end
+      self
+    end
+
+    def fill_ridge
+      idx = @tbl.size - 1
+      idx -= 1 while @tbl[idx].zero?
+      v = 1
+      while @zero <= idx
+        @tbl[idx] = v
+        v += v + 1
+        idx -= 1
+      end
+      v >>= 1
+      while 0 < v
+        @tbl[idx] = v
+        v >>= 1
+        idx -= 1
+      end
+      self
     end
 
     def to_i
@@ -311,6 +394,113 @@ module C32
       self
     end
 
+    def rotate
+      rv = @tbl[@zero - 1].to_3 / 2
+      return if rv.zero?
+      while 2**(@tbl.size - @zero) < rv
+        i = (Math.log2(rv) / (1 + Math.log2(3))).to_i
+        i = 0
+        j = ((Math.log2(rv / 2**i)/Math.log2(3))).to_i
+        #puts "rv = #{rv} i = #{i}"
+        bv = 2**i * 3**j
+        #puts "  2^#{i} 3^#{j} = #{bv}"
+        bit = @tbl[@zero + i] & (1 << j)
+        #puts "  bit = #{bit}"
+        while !bit.zero?
+          i += 1
+          j = ((Math.log2(rv / 2**i)/Math.log2(3))).to_i
+          bv = 2**i * 3**j
+          bit = @tbl[@zero + i] & (1 << j)
+        end
+        if bit.zero?
+          @tbl[@zero + i] |= (1 << j)
+          rv -= bv
+          #puts "   new rv = #{rv}"
+        else
+          break
+        end
+      end
+      @tbl[@zero - 1] = 0
+      p = 1
+      (@zero...@tbl.size).each do |idx|
+        rv += p * (@tbl[idx] & 1)
+        p <<= 1
+      end
+      idx = @zero
+      #puts "rv = #{rv}"
+      while 0 < rv
+        @tbl.push 0 if @tbl.size == idx
+        if rv % 2 == 0
+          @tbl[idx] >>= 1
+          @tbl[idx] <<= 1
+        else
+          @tbl[idx] |= 1
+        end
+        rv >>= 1
+        idx += 1
+      end
+    end
+
+    def log3 x
+      Math.log(x)/Math.log(3)
+    end
+    def ijval i, j
+      2**i * 3**j
+    end
+    def add_at i, j, rv
+      bit = @tbl[@zero + i] & (1 << j)
+      if bit.zero?
+        @tbl[@zero + i] |= (1 << j)
+        return [i, j]
+      end
+      @tbl[@zero + i] ^= (1 << j)
+      add_at i + 1, j, rv
+    end
+
+    def add_binary_column rv
+      p = 1
+      (@zero...@tbl.size).each do |idx|
+        rv += p * (@tbl[idx] & 1)
+        p <<= 1
+      end
+      idx = @zero
+      #puts "rv = #{rv}"
+      while 0 < rv
+        @tbl.push 0 if @tbl.size == idx
+        if rv % 2 == 0
+          @tbl[idx] >>= 1
+          @tbl[idx] <<= 1
+        else
+          @tbl[idx] |= 1
+        end
+        rv >>= 1
+        idx += 1
+      end
+    end
+
+    def rotate
+      rv = @tbl[@zero - 1].to_3 / 2
+      return if rv.zero?
+      bc = 0
+      p = 1
+      (@zero...@tbl.size).each do |idx|
+        bc += p * (@tbl[idx] & 1)
+        p <<= 1
+      end
+      max_bc = 2**(@tbl.size - @zero) - 1
+      #puts "rv #{rv}   bc #{bc}   max #{max_bc}"
+      while max_bc - bc < rv
+        i = 0
+        j = log3(rv).to_i - 1
+        break if j < 1
+        add_at i, j, rv
+        rv -= ijval i, j
+      end
+      @tbl[@zero - 1] = 0
+      add_binary_column rv if 0 < rv
+      return self
+    end
+
     def div2
       unless @tbl.first == 0
         puts to_s
@@ -340,18 +530,21 @@ module C32
       stats = [[n, x.bits]]
       p = false
       nx = n
+      max_width = x.width
       while 1 < n
         x.iter
         nx = nx / 2 + (nx % 2)*(nx + 1)
         n = x.to_i
         puts x.to_s if p
         raise "x.to_i = #{n}  nx = #{nx}" unless n == nx
+        w = x.width
+        max_width = w if max_width < w
         stats << [n, x.bits]
         if 0 < x.tbl[x.zero - 1]
           p = true
         end
       end
-      stats
+      [stats, x, max_width]
     end
 
     def to_s

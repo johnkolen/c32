@@ -2,6 +2,7 @@
 
 require_relative "c32/integer.rb"
 require_relative "c32/c32.rb"
+require_relative "c32/collatz.rb"
 require_relative "c32/version"
 
 module C32

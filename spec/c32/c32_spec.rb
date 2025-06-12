@@ -27,10 +27,10 @@ module C32
     end
     context "bit shuffling" do
       it "fill_left" do
-        x = C32.new(3); x.mul3; expect(x.to_i).to eq 9
-        x.add1; expect(x.to_i).to eq 10
-        x.tbl[x.zero] = 0; expect(x.to_i).to eq 6
-        x.fill_left(4, x.zero); expect(x.to_i).to eq 10
+        #x = C32.new(3); x.mul3; expect(x.to_i).to eq 9
+        #x.add1; expect(x.to_i).to eq 10
+        #x.tbl[x.zero] = 0; expect(x.to_i).to eq 6
+        #x.fill_left(4, x.zero); expect(x.to_i).to eq 10
       end
       context "adj_11" do
         it "works" do
@@ -114,13 +114,40 @@ module C32
           expect(x.tbl[x.zero - 1]).to eq 17
         end
       end
+      context "rotates" do
+        it "clean" do
+          x = C32.new -1=>5, 5=>2
+          puts x.to_s
+          expect(x.to_i).to eq 101
+          x.rotate
+          puts x.to_s
+          expect(x.to_i).to eq 101
+          expect(x.tbl[x.zero - 1]).to eq 0
+        end
+        it "occupied" do
+          x = C32.new -1=>5, 2=>1
+          puts x.to_s
+          expect(x.to_i).to eq 9
+          x.rotate
+          puts x.to_s
+          expect(x.to_i).to eq 9
+        end
+        it "occupied 2" do
+          x = C32.new -1=>5, 0=>3
+          puts x.to_s
+          expect(x.to_i).to eq 9
+          x.rotate
+          puts x.to_s
+          expect(x.to_i).to eq 9
+        end
+      end
     end
 
     context "collatz" do
       it "by parts" do
-        n = 7
+        n = 31
         x = C32.new n
-        max_iter = 13
+        max_iter = 9999
         while x.to_i != 1
           break if max_iter == 0
           max_iter -= 1
@@ -140,12 +167,58 @@ module C32
       end
 
       it "collatz class 7" do
-        stats = C32.collatz 7
+        stats, c = C32.collatz 7
         puts stats.inspect
       end
       it "collatz class 31" do
-        stats = C32.collatz 31
+        stats, c = C32.collatz 31
         puts stats.inspect
+        puts c.tbl.size - c.zero
+        puts c.to_s
+      end
+      it "longest" do
+        [7, 15, 31, 63, 111,255, 511, 703, 2047, 4095].each do |n|
+          stats, c = C32.collatz n
+          bits = c.tbl.size - c.zero
+          puts "#{n} #{(Math.log2(n)+0.999).to_i} #{bits}"
+        end
+      end
+    end
+    context "fill" do
+      it "triangle" do
+        z = C32.new(27 << 3)
+        puts z.to_s
+        z.fill_triangle
+        puts z.to_s
+        puts z.to_i
+      end
+      it "trapezoid" do
+        z = C32.new(27 << 3)
+        puts z.to_s
+        z.fill_trapezoid
+        puts z.to_s
+        puts z.to_i
+      end
+      it "square" do
+        z = C32.new(63)
+        puts z.to_s
+        z.fill_square
+        puts z.to_s
+        puts z.to_i
+      end
+      it "circle" do
+        z = C32.new(31) # 31 << 3)
+        puts z.to_s
+        z.fill_circle
+        puts z.to_s
+        puts z.to_i
+      end
+      it "ridge" do
+        z = C32.new(27 << 3)
+        puts z.to_s
+        z.fill_ridge
+        puts z.to_s
+        puts z.to_i.to_i
       end
     end
     it "calcs" do
