@@ -2,6 +2,7 @@
 
 require_relative 'lib/c32'
 require_relative 'values'
+
 module C32
   n = (ARGV[0] || 10).to_i
   w = Math.log10(n).to_i + 1
@@ -10,20 +11,19 @@ module C32
   fm = "%#{Math.log10(2**n).to_i + 1}d"
 
   fi = "%#{Math.log10(VALUES.size + 3).ceil}d"
-  t = C32.new(VALUES.last).fill_circle.to_i.to_i
+  t = C32.new(VALUES.last).fill_triangle.to_i.to_i
   fx = "%#{Math.log10(t).ceil + 1}d"
   fn = "%#{Math.log10(VALUES.last).ceil}d"
-
+  puts fn
   VALUES.each_with_index do |n, idx|
     i = idx + 3
     #break if 3 < idx
     stats, c, width = C32.collatz n
     max_n = stats.map(&:first).max
     #puts stats.inspect
-    t = C32.new(n<<1).fill_circle.to_i.to_i
+    t = C32.new(n).fill_triangle.to_i.to_i
     bits = c.tbl.size - c.zero
     bad = t < max_n ? "bad" : ""
     puts "#{fi % i} #{fn % n} #{fx % max_n} #{fx % t}  #{bad}"
-    STDOUT.flush
   end
 end

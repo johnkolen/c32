@@ -140,6 +140,30 @@ module C32
           puts x.to_s
           expect(x.to_i).to eq 9
         end
+        it "collapses 4" do
+          x = C32.new 0=>3
+          puts x.to_s
+          expect(x.to_i).to eq 4
+          x.collapse
+          puts x.to_s
+          expect(x.to_i).to eq 4
+        end
+        it "collapses 4" do
+          x = C32.new 0=>2**4-1
+          puts x.to_s
+          expect(x.to_i).to eq 40
+          x.collapse
+          puts x.to_s
+          expect(x.to_i).to eq 40
+        end
+        it "collapses 6" do
+          x = C32.new 0=>2**6-1
+          puts x.to_s
+          expect(x.to_i).to eq 364
+          x.collapse
+          puts x.to_s
+          expect(x.to_i).to eq 364
+        end
       end
     end
 
@@ -219,6 +243,36 @@ module C32
         z.fill_ridge
         puts z.to_s
         puts z.to_i.to_i
+      end
+    end
+    context "footprint" do
+      it "|= smaller" do
+        a = C32.new(7).mul3
+        b = C32.new(11)
+        b.or_eq  a
+        expect(b.to_i).to eq 32
+      end
+      it "|= larger" do
+        a = C32.new(20).mul3
+        expect(a.to_i).to eq 60
+        b = C32.new(11)
+        b.or_eq  a
+        expect(b.to_i).to eq 71
+      end
+    end
+
+    it "works" do
+      3.upto(35) do |n|
+        c = 3**n
+        b = 2**(n+1) - 1
+        i = 0
+        while b < c
+          c -= b
+          c = c / 3
+          # b >>= 1
+          i+= 1
+        end
+        puts "%2d %2d" % [n , i]
       end
     end
     it "calcs" do

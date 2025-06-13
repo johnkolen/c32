@@ -74,6 +74,19 @@ module C32
       self
     end
 
+    def fill_square
+      idx = @tbl.size - 1
+      idx -= 1 while @tbl[idx].zero?
+      mask = 2**(idx) - 1
+      v = mask >> (idx / 2).to_i
+      while @zero <= idx
+        @tbl[idx] = v
+        v = ((v << 1) + 1) & mask
+        idx -= 1
+      end
+      self
+    end
+
     def fill_circle
       idx = @tbl.size - 1
       idx -= 1 while @tbl[idx].zero?
@@ -91,11 +104,11 @@ module C32
     def fill_trapezoid
       idx = @tbl.size - 1
       idx -= 1 while @tbl[idx].zero?
-      d = 0
-      d = 1 if idx == 3
-      d = 3 if idx == 5
-      d = 1 if idx == 6
-      v = 2**(((idx - @zero) / 4.0).ceil + d) - 1
+      d = 1
+      #d = 1 if idx == 3
+      #d = 3 if idx == 5
+      #d = 1 if idx == 6
+      v = 2**(((idx - @zero) / 4).ceil + d) - 1
       while @zero <= idx
         @tbl[idx] = v
         v += v + 1
@@ -118,6 +131,27 @@ module C32
         @tbl[idx] = v
         v >>= 1
         idx -= 1
+      end
+      self
+    end
+
+    def or_eq otr
+      while @zero < otr.zero
+        @tbl.unshift 0
+        @zero += 1
+      end
+      while @tbl.size - @zero < otr.tbl.size - otr.zero
+        @tbl.push 0
+      end
+      @zero.upto(@tbl.size - 1) do |idx|
+        t = otr.tbl[idx - @zero + otr.zero]
+        break if t.nil?
+        @tbl[idx] |= t
+      end
+      (@zero - 1).downto(0) do |idx|
+        break if idx - @zero + otr.zero < 0
+        t = otr.tbl[idx - @zero + otr.zero]
+        @tbl[idx] |= t
       end
       self
     end
@@ -447,6 +481,7 @@ module C32
     def ijval i, j
       2**i * 3**j
     end
+
     def add_at i, j, rv
       bit = @tbl[@zero + i] & (1 << j)
       if bit.zero?
@@ -501,6 +536,27 @@ module C32
       return self
     end
 
+    def collapse
+      z = @tbl[@zero]
+      @tbl[@zero] &= 3
+      u = z
+      u >>= 2
+      @tbl[@zero + 3] ||= 0
+      while 0 < u
+        add_at 0, 0, u & 1
+        add_at 0, 1, u & 2
+        v = u
+        i = 0
+        while 0 < v
+          add_at 3, i, v & 1
+          add_at 3, i+1, v & 2
+          i += 2
+          v >>= 2
+        end
+        u >>= 2
+      end
+    end
+
     def div2
       unless @tbl.first == 0
         puts to_s
@@ -518,6 +574,17 @@ module C32
       else
         div2.rotate
       end
+    end
+
+    def iterate &block
+      n = to_i
+      while 1 < n
+        yield self
+        iter
+        n = to_i
+      end
+      yield self
+      self
     end
 
     def bits
@@ -545,6 +612,17 @@ module C32
         end
       end
       [stats, x, max_width]
+    end
+
+    def self.footprint n
+      x = new(n)
+      fp = new(n)
+      while 1 < n
+        x.iter
+        fp.or_eq x
+        n = x.to_i
+      end
+      fp
     end
 
     def to_s
