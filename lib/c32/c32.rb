@@ -10,23 +10,48 @@ module C32
       @zero = 0
       if options.empty?
         raise "missing n" if n.nil?
-        while 0 < n
-          @tbl.push n & 1
-          n >>= 1
+        if true
+          while 0 < n
+            @tbl.push n & 1
+            n >>= 1
+          end
+        else
+          @tbl.push 0
+          @tbl.push 0
+          t = 1
+          while 0 < n
+            b = n % 3
+            if b == 2
+              @tbl[1] += t
+            elsif b == 1
+              @tbl[0] += t
+            end
+            t <<= 1
+            n = n / 3
+          end
         end
       else
-        options.each do |idx, v|
-          while idx + @zero < 0
-            @tbl.unshift 0
-            @zero += 1
+        if options[:minimal]
+          fill_with self.class.minimal_bits(options[:minimal])
+        elsif options[:bits]
+          fill_with options[:bits]
+        else
+          options.each do |idx, v|
+            unless idx.is_a? Integer
+              raise "#{idx} is not an integer"
+            end
+            while idx + @zero < 0
+              @tbl.unshift 0
+              @zero += 1
+            end
+            if idx.is_a? Integer
+              @tbl[idx + @zero] = v
+            end
           end
-          if idx.is_a? Integer
-            @tbl[idx + @zero] = v
+          @tbl[@tbl.size - @zero + 1] = 0
+          0.upto(@tbl.size - 1) do |idx|
+            @tbl[idx] ||= 0
           end
-        end
-        @tbl[@tbl.size - @zero + 1] = 0
-        0.upto(@tbl.size - 1) do |idx|
-          @tbl[idx] ||= 0
         end
       end
       height = @tbl.size - @zero
@@ -51,6 +76,26 @@ module C32
       @tbl.map{|x| x.zero? ? 1 : Math.log2(x).ceil.to_i }.max
     end
 
+    def dimensions
+      [@tbl.size - @zero, width]
+    end
+
+    def fill_with values
+      values.each do |value|
+        i = 0
+        while value % 2 == 0
+          i += 1
+          value >>= 1
+        end
+        j = 0
+        while value % 3 == 0
+          j += 1
+          value = value / 3
+        end
+        add_at i, j, 1
+      end
+    end
+
     def fill_triangle
       idx = @tbl.size - 1
       idx -= 1 while @tbl[idx].zero?
@@ -60,6 +105,35 @@ module C32
         v += v + 1
         idx -= 1
       end
+      self
+    end
+
+    def fill_triangle
+      #puts to_s
+      idx = @tbl.size - 1
+      idx -= 1 while @tbl[idx].zero?
+      #puts "idx = #{idx}"
+      bits = idx - @zero + 1
+      k = 0 #6.0
+      mask = 2**((bits + k / bits).ceil) - 1
+      #puts "bits = #{bits}"
+      #puts mask.to_s(2)
+      bits = (1.45 * bits + k / bits).ceil
+      bits = bits.ps3.to_s(2).size
+      #puts "new bits = #{bits}"
+      while @tbl.size - @zero + 1 < bits
+        #puts "adding bit"
+        @tbl.push 1
+      end
+      idx = @tbl.size - 1
+      v = 1
+      while @zero <= idx
+        @tbl[idx] = v
+        v += v + 1
+        v &= mask
+        idx -= 1
+      end
+      #puts to_s
       self
     end
 
@@ -483,6 +557,9 @@ module C32
     end
 
     def add_at i, j, rv
+      while @tbl.size - 1 < i + @zero
+        @tbl.push 0
+      end
       bit = @tbl[@zero + i] & (1 << j)
       if bit.zero?
         @tbl[@zero + i] |= (1 << j)
@@ -492,7 +569,7 @@ module C32
       add_at i + 1, j, rv
     end
 
-    def add_binary_column rv
+    def add_binary_column_dep rv
       p = 1
       (@zero...@tbl.size).each do |idx|
         rv += p * (@tbl[idx] & 1)
@@ -507,6 +584,27 @@ module C32
           @tbl[idx] <<= 1
         else
           @tbl[idx] |= 1
+        end
+        rv >>= 1
+        idx += 1
+      end
+    end
+
+    def add_binary_column rv, col=0
+      p = 1
+      z = 1 << col
+      (@zero...@tbl.size).each do |idx|
+        rv += p * (@tbl[idx] & z)
+        p <<= 1
+      end
+      idx = @zero
+      #puts "rv = #{rv}"
+      while 0 < rv
+        @tbl.push 0 if @tbl.size == idx
+        if rv % 2 == 0
+          @tbl[idx] &= ~z
+        else
+          @tbl[idx] |= z
         end
         rv >>= 1
         idx += 1
@@ -533,6 +631,37 @@ module C32
       end
       @tbl[@zero - 1] = 0
       add_binary_column rv if 0 < rv
+      return self
+    end
+
+    def rotate
+      rv = @tbl[@zero - 1].to_3 / 2
+      return if rv.zero?
+      bits = @tbl[@zero - 1].bits
+      @tbl[@zero - 1] = 0
+      if rv < 2**(@tbl.size - @zero - 1)
+        add_binary_column rv
+      else
+        bx = 2**(@tbl.size - @zero - 1) - 1
+        add_binary_column bx
+        rv -= bx
+        t = 0
+        while 0 < rv
+          b = rv % 3
+          if b == 2
+            add_at 1, t, 1
+          elsif b == 1
+            add_at 0, t, 1
+          end
+          t += 1
+          rv = rv / 3
+        end
+        #puts "mimimal #{rv}"
+        #values = self.class.minimal_bits rv
+        #puts values.inspect
+        #puts "before: #{bits}  after: #{values.size} #{bits < values.size ? 'inc' : ''}"
+        #fill_with values
+      end
       return self
     end
 
@@ -612,6 +741,76 @@ module C32
         end
       end
       [stats, x, max_width]
+    end
+
+    def self.minimal_bits_rec n, idx, values, bound=9999999, indent=""
+      @calls += 1
+      key = n
+      if false && @memo[key]
+        rv = @memo[key]
+        return @memo[key] if rv.size <= bound
+        return nil
+      end
+      return [] if n == 0
+      return nil if bound <= 0
+      if n < values[idx].first
+        bs = values[0..idx].bsearch_index{|x| x.first > n }
+        idx = bs ? bs - 1 : idx
+      end
+      node = values[idx]
+      current, max_rest = node
+      if max_rest < n
+        #puts "#{indent}max rest block"
+        return nil
+      end
+      if max_rest == n
+        #puts "#{indent}max rest found"
+        if values.size + 1 <= bound
+          return values.map(&:first).push current
+        end
+        return nil
+      end
+      res = minimal_bits_rec n, idx - 1, values, bound, "  #{indent}"
+      raise "cain #{bound} #{res.size}" if res && bound < res.size
+      bound = res.size if res
+      resp = minimal_bits_rec n - current,  idx - 1, values, bound - 1, "  #{indent}"
+      raise "able" if resp && bound < resp.size
+      #puts "#{indent}#{res.inspect} #{resp.inspect}"
+      if !resp
+        return res ? @memo[key] = res : nil
+      end
+      resp.push current
+      return @memo[key] = resp if !res
+      return @memo[key] = res if res.size <= resp.size
+      return @memo[key] = resp
+    end
+
+    def self.calls
+      @calls
+    end
+    def self.minimal_bits n
+      max_j = (Math.log(n)/Math.log(3)).floor.to_i
+      values = []
+      max_j.downto(0) do |j|
+        v = 3**j
+        while v < n
+          values.push v
+          v *= 2
+        end
+      end
+      s = 0
+      values = values.sort.map{ |x| [x, s += x] }
+      @calls = 0
+      @memo ||= {}
+      bound = 1
+      nx = n
+      while 1 < nx
+        bound += 1 unless nx % 3 == 0
+        nx = nx / 3
+      end
+      rv = minimal_bits_rec n, values.size - 1, values, bound
+      #puts @memo.inspect
+      rv
     end
 
     def self.footprint n

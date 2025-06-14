@@ -64,7 +64,20 @@ module C32
       low = high >> 1
       high -= 1
       #puts "low = #{low}  high = #{high}"
-      low += 1
+      low += 1 # low is now odd
+      max_x low, high
+    end
+
+    def self.max3 width
+      high = 3**width
+      low = high / 3
+      high -= 1
+      #puts "low = #{low}  high = #{high}"
+      low += 1 if low % 2 == 0
+      max_x low, high
+    end
+
+    def self.max_x low, high
       max_cn = [high, high]
       stepsize = 2**10
       list = []

@@ -22,4 +22,15 @@ class Integer
     end
     c
   end
+
+  def ps3
+    n = self
+    v = 1
+    n -= 1
+    while 0 < n
+      n -= 1
+      v = 3 * v + 1
+    end
+    v
+  end
 end

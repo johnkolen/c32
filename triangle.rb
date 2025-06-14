@@ -12,6 +12,7 @@ module C32
 
   fi = "%#{Math.log10(VALUES.size + 3).ceil}d"
   t = C32.new(VALUES.last).fill_triangle.to_i.to_i
+  #t = 10
   fx = "%#{Math.log10(t).ceil + 1}d"
   fn = "%#{Math.log10(VALUES.last).ceil}d"
   puts fn
@@ -24,6 +25,7 @@ module C32
     t = C32.new(n).fill_triangle.to_i.to_i
     bits = c.tbl.size - c.zero
     bad = t < max_n ? "bad" : ""
-    puts "#{fi % i} #{fn % n} #{fx % max_n} #{fx % t}  #{bad}"
+    r = max_n.to_f / t.to_f
+    puts "#{fi % i} #{fn % n} #{fx % max_n} #{fx % t} r=#{'%6.4f' % r} #{bad}"
   end
 end

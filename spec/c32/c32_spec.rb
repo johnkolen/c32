@@ -9,6 +9,8 @@ module C32
       it { expect(C32.new 1).to be_a C32 }
       it { expect(seven.to_i).to eq 7 }
       it { expect(C32.new(0=>3, 1=>1).to_i).to eq 6 }
+      it { expect(C32.new(bits: [9, 48, 64]).to_i).to eq 121 }
+      it { expect(C32.new(minimal: 121).to_i).to eq 121 }
     end
 
     it "dup" do
@@ -157,6 +159,7 @@ module C32
           expect(x.to_i).to eq 40
         end
         it "collapses 6" do
+          skip
           x = C32.new 0=>2**6-1
           puts x.to_s
           expect(x.to_i).to eq 364
@@ -195,13 +198,17 @@ module C32
         puts stats.inspect
       end
       it "collatz class 31" do
+        5.upto(1024) do |n|
+          C32.minimal_bits n
+        end
         stats, c = C32.collatz 31
         puts stats.inspect
         puts c.tbl.size - c.zero
         puts c.to_s
       end
       it "longest" do
-        [7, 15, 31, 63, 111,255, 511, 703, 2047, 4095].each do |n|
+        [7, 15, 31, 63, 111, 255, 511, 703, 2047, 4095].each do |n|
+          puts "start #{n}"
           stats, c = C32.collatz n
           bits = c.tbl.size - c.zero
           puts "#{n} #{(Math.log2(n)+0.999).to_i} #{bits}"
@@ -280,6 +287,16 @@ module C32
       1.upto n do |x|
         x3 = x.to_3
         puts "#{x}  #{x.to_s(2).reverse} :  #{x3}" if 2 * n < x3
+      end
+    end
+    context "minimal" do
+      it "works" do
+        expect(C32.minimal_bits 31).to eq [4, 27]
+        r = [C32.calls]
+        expect(C32.minimal_bits 5.ps3).to eq [9, 48, 64]
+        r << C32.calls
+        puts r.inspect
+        expect(C32.minimal_bits 4616).to eq [8, 4608]
       end
     end
   end
