@@ -25,7 +25,8 @@ module C32
     fz = "%#{2 * Math.log10(2**n).to_i + 1}d"
     m.upto(n) do |i|
       finish, start = Collatz.max i
-      puts "#{fi} #{fx} #{fz}" % [i, start, finish]
+      label = (start + 1).bits == 1 ? "2^x-1" : ""
+      puts "#{fi} #{fx} #{fz}   #{label}" % [i, start, finish]
       STDOUT.flush
     end
   when :three

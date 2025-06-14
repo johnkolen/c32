@@ -34,88 +34,6 @@ module C32
         #x.tbl[x.zero] = 0; expect(x.to_i).to eq 6
         #x.fill_left(4, x.zero); expect(x.to_i).to eq 10
       end
-      context "adj_11" do
-        it "works" do
-          x = C32.new 0=>3
-          expect(x.to_i).to eq 4
-          x.div2
-          expect(x.to_i).to eq 2
-          x.adj_11
-          expect(x.to_i).to eq 2
-          expect(x.tbl[x.zero - 1]).to eq 0
-        end
-        it "skips" do
-          x = C32.new 0=>3, 2=>1
-          expect(x.to_i).to eq 8
-          x.div2
-          expect(x.to_i).to eq 4
-          x.adj_11
-          expect(x.to_i).to eq 4
-          expect(x.tbl[x.zero - 1]).to eq 3
-        end
-      end
-      context "adj_101" do
-        it "works" do
-          x = C32.new 0=>5
-          expect(x.to_i).to eq 10
-          x.div2
-          expect(x.to_i).to eq 5
-          x.adj_101
-          expect(x.to_i).to eq 5
-          expect(x.tbl[x.zero - 1]).to eq 0
-        end
-        it "skips" do
-          x = C32.new 0=>5, 1=>2, 2=>1
-          expect(x.to_i).to eq 20
-          x.div2
-          expect(x.to_i).to eq 10
-          x.adj_101
-          expect(x.to_i).to eq 10
-          expect(x.tbl[x.zero - 1]).to eq 5
-        end
-      end
-
-      context "adj_1001" do
-        it "works" do
-          x = C32.new 0=>9
-          expect(x.to_i).to eq 28
-          x.div2
-          expect(x.to_i).to eq 14
-          x.adj_1001
-          expect(x.to_i).to eq 14
-          expect(x.tbl[x.zero - 1]).to eq 0
-        end
-        it "skips" do
-          x = C32.new 0=>9, 1=>6, 2=>1
-          expect(x.to_i).to eq 56
-          x.div2
-          expect(x.to_i).to eq 28
-          x.adj_1001
-          expect(x.to_i).to eq 28
-          expect(x.tbl[x.zero - 1]).to eq 9
-        end
-      end
-
-      context "adj_10001" do
-        it "works" do
-          x = C32.new 0=>17
-          expect(x.to_i).to eq 82
-          x.div2
-          expect(x.to_i).to eq 41
-          x.adj_10001
-          expect(x.to_i).to eq 41
-          expect(x.tbl[x.zero - 1]).to eq 0
-        end
-        it "skips" do
-          x = C32.new 0=>17, 1=>14, 2=>1
-          expect(x.to_i).to eq 164
-          x.div2
-          expect(x.to_i).to eq 82
-          x.adj_10001
-          expect(x.to_i).to eq 82
-          expect(x.tbl[x.zero - 1]).to eq 17
-        end
-      end
       context "rotates" do
         it "clean" do
           x = C32.new -1=>5, 5=>2
@@ -285,7 +203,7 @@ module C32
     it "calcs" do
       n = 2**5 - 1
       1.upto n do |x|
-        x3 = x.to_3
+        x3 = x.from_3
         puts "#{x}  #{x.to_s(2).reverse} :  #{x3}" if 2 * n < x3
       end
     end
@@ -297,6 +215,16 @@ module C32
         r << C32.calls
         puts r.inspect
         expect(C32.minimal_bits 4616).to eq [8, 4608]
+      end
+    end
+    context "playground" do
+      it "min" do
+        i = 9
+        10.times do |j|
+          bits = C32.minimal_bits (1 + i) / 2
+          puts "#{j} #{((i+1)/2).to_s(3).reverse} #{bits.inspect} : #{i}"
+          i *= 3
+        end
       end
     end
   end

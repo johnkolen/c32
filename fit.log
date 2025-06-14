@@ -463,3 +463,92 @@ b              -0.999  1.000
 c              -0.880  0.866  1.000 
 d               0.883 -0.872 -0.998  1.000 
 e               0.843 -0.823 -0.992  0.982  1.000 
+
+
+*******************************************************************************
+Fri Jun 13 21:32:36 2025
+
+
+FIT:    data read from "footprintSmash"
+        format = z
+        #datapoints = 33
+        residuals are weighted equally (unit weight)
+
+function used for fitting: g(x,y)
+	g(x,y)=a*x+b+y+c
+BREAK: Need via and either parameter list or file
+
+*******************************************************************************
+Fri Jun 13 21:32:46 2025
+
+
+FIT:    data read from "footprintSmash" using 2:3:5
+        format = x:y:z
+        #datapoints = 33
+        residuals are weighted equally (unit weight)
+
+function used for fitting: g(x,y)
+	g(x,y)=a*x+b+y+c
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   a             b             c            
+   0 9.8798042700e+02   0.00e+00  1.22e+01    1.000000e+00   1.000000e+00   1.000000e+00
+   4 1.1394581190e+02  -2.16e-03  1.22e-03    1.039112e+00  -1.935113e+00  -1.935113e+00
+
+After 4 iterations the fit converged.
+final sum of squares of residuals : 113.946
+rel. change during last iteration : -2.15865e-08
+
+degrees of freedom    (FIT_NDF)                        : 30
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 1.9489
+variance of residuals (reduced chisquare) = WSSR/ndf   : 3.79819
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+a               = 1.03911          +/- 0.03614      (3.478%)
+b               = -1.93511         +/- 2.342e+11    (1.21e+13%)
+c               = -1.93511         +/- 2.342e+11    (1.21e+13%)
+
+correlation matrix of the fit parameters:
+                a      b      c      
+a               1.000 
+b              -0.142  1.000 
+c               0.142 -1.000  1.000 
+
+
+*******************************************************************************
+Fri Jun 13 21:36:04 2025
+
+
+FIT:    data read from "footprintSmash" using 2:3:7
+        format = x:y:z
+        #datapoints = 33
+        residuals are weighted equally (unit weight)
+
+function used for fitting: g(x,y)
+	g(x,y)=a*x+b+y+c
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   a             b             c            
+   0 4.5321212115e+03   0.00e+00  1.28e+01    1.039112e+00  -1.935113e+00  -1.935113e+00
+   4 6.7647441080e+01  -6.21e-06  1.28e-03    3.666863e-01  -4.619528e-01  -4.619519e-01
+
+After 4 iterations the fit converged.
+final sum of squares of residuals : 67.6474
+rel. change during last iteration : -6.21348e-11
+
+degrees of freedom    (FIT_NDF)                        : 30
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 1.50164
+variance of residuals (reduced chisquare) = WSSR/ndf   : 2.25491
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+a               = 0.366686         +/- 0.02946      (8.035%)
+b               = -0.461953        +/- 1.221e+11    (2.643e+13%)
+c               = -0.461952        +/- 1.221e+11    (2.643e+13%)
+
+correlation matrix of the fit parameters:
+                a      b      c      
+a               1.000 
+b              -0.353  1.000 
+c               0.353 -1.000  1.000 

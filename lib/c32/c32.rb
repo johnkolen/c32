@@ -233,9 +233,14 @@ module C32
     def to_i
       c = 0
       @tbl.each_with_index do |z, idx|
-        v = z.to_3
-        c += z.to_3 * 2**(idx - @zero) unless v.zero?
+        v = z.from_3
+        unless v.zero?
+          d = z.from_3 * 2**(idx - @zero)
+          c += d
+          #puts ">#{idx - @zero} #{v}  #{d}  #{c}"
+        end
       end
+      c = c.to_i if c.is_a?(Rational) && c.denominator == 1
       c
     end
 
@@ -249,31 +254,6 @@ module C32
       raise "add1: space occupied" unless x & 1 == 0
       @tbl[@zero] |= 1
       self
-    end
-
-    def rotate
-      [3, 5].each do |x|
-        x3 = x.to_3
-        xs = x
-        if @tbl[@zero - 1].to_3 == x.to_3
-          @tbl[@zero - 1] &= 0xFFFFFFFF ^ x
-          i = @zero
-          x3 >>= 1
-          while 0 < x3
-            # puts "--- #{x3}  #{x3  & 1}"
-            if x3 & 1 == 1
-              unless @tbl[i] & 1 == 0
-                puts to_s
-                raise "rotate: #{xs} "
-              end
-              @tbl[i] |= 1
-            end
-            i += 1
-            x3 >>= 1
-          end
-          return
-        end
-      end
     end
 
     def fill_left n, idx
@@ -292,261 +272,6 @@ module C32
         idx += 1
       end
       self
-    end
-
-    def adj_1
-      changed = false
-      check = to_i
-      (@zero - 1).downto(0) do |base|
-        u = @tbl[base - 1]
-        next if u.zero?
-        # 1      :
-        # 1      :- equals 3
-        # 01     2.to_3 = 3
-        u = @tbl[base - 1]
-        i1 = 1
-        i0 = 1
-        j = 1
-        while 0 < u
-          if u & 2 == 2  # 101.to_3 = 10
-            if (@tbl[base + 1] & i1).zero? &&
-               (@tbl[base] & i0).zero?
-              @tbl[base + 1] |= i1
-              @tbl[base] |= i0
-              @tbl[base - 1] ^= (j * 2)
-              changed = true
-              puts "found 1 #{base}"
-            else
-              puts "found 1 but skipping #{base}"
-            end
-          end
-          i0 <<= 1
-          i1 <<= 1
-          j <<= 1
-          u >>= 1
-        end
-      end
-      if changed
-        puts to_s
-        raise "mismatch #{check} #{to_i}" if check != to_i
-      end
-      changed
-    end
-
-    def adj_11
-      changed = false
-      check = to_i
-      (@zero - 1).downto(0) do |base|
-        u = @tbl[base]
-        next if u.zero?
-        # 1      :
-        # 0      :- equals 4
-        # 11     to_3 = 4
-        i1 = 1
-        j = 1
-        while 0 < u
-          if u & 3 == 3
-            if (@tbl[base + 2] & i1).zero?
-              @tbl[base + 2] |= i1
-              @tbl[base] ^= (j * 3)
-              # take an extra step because 11 becomes 00
-              i1 <<= 1
-              j <<= 1
-              u >>= 1
-              changed = true
-              puts "found 101 #{base}"
-            else
-              puts "found 11 but skipping #{base}"
-            end
-          end
-          i1 <<= 1
-          j <<= 1
-          u >>= 1
-        end
-      end
-      if changed
-        puts to_s
-        raise "mismatch #{check} #{to_i}" if check != to_i
-      end
-      changed
-    end
-
-    def adj_101
-      changed = false
-      check = to_i
-      (@zero - 1).downto(0) do |base|
-        u = @tbl[base]
-        # 1    :
-        # 01   :- equals 10
-        # 101  to_3 = 10
-        i1 = 1
-        i0 = 2
-        j = 1
-        while 0 < u
-          if u & 5 == 5  # 101.to_3 = 10
-            if (@tbl[base + 2] & i1).zero? &&
-               (@tbl[base + 1] & i0).zero?
-              @tbl[base + 2] |= i1
-              @tbl[base + 1] |= i0
-              @tbl[base] ^= (j * 5)
-              changed = true
-              puts "found 101 #{base}"
-            else
-              puts "found 101 but skipping #{base}"
-            end
-          end
-          i0 <<= 1
-          i1 <<= 1
-          j <<= 1
-          u >>= 1
-        end
-      end
-      if changed
-        puts to_s
-        raise "mismatch #{check} #{to_i}" if check != to_i
-      end
-      changed
-    end
-
-    def adj_1001
-      changed = false
-      check = to_i
-      (@zero - 1).downto(0) do |base|
-        u = @tbl[base]
-        next if u.zero?
-        # 1     :
-        # 0110  :- equals 28
-        # 1001  = 9.to_3 = 28
-        i1 = 1
-        i0 = 6
-        j = 1
-        while 0 < u
-          if u & 9 == 9  # 101.to_3 = 10
-            if (@tbl[base + 2] & i1).zero? &&
-               (@tbl[base + 1] & i0).zero?
-              @tbl[base + 2] |= i1
-              @tbl[base + 1] |= i0
-              @tbl[base] ^= (j * 9)
-              changed = true
-              puts "found 1001 #{base}"
-            else
-              puts "found 1001 but skipping #{base}"
-            end
-          end
-          i0 <<= 1
-          i1 <<= 1
-          j <<= 1
-          u >>= 1
-        end
-      end
-      if changed
-        puts to_s
-        raise "mismatch #{check} #{to_i}" if check != to_i
-      end
-      changed
-    end
-
-    def adj_10001
-      changed = false
-      check = to_i
-      (@zero - 1).downto(0) do |base|
-        u = @tbl[base]
-        next if u.zero?
-        # 1      :
-        # 01110  :- equals 82
-        # 10001  = 17.to_3 = 82
-        i1 = 1
-        i0 = 14
-        j = 1
-        while 0 < u
-          if u & 17 == 17  # 101.to_3 = 10
-            puts "#{base} #{u}"
-            if (@tbl[base + 2] & i1).zero? &&
-               (@tbl[base + 1] & i0).zero?
-              @tbl[base + 2] |= i1
-              @tbl[base + 1] |= i0
-              @tbl[base] ^= (j * 17)
-              changed = true
-              puts "found 10001 #{base}"
-            else
-              puts "found 10001 but skipping #{base}"
-            end
-          end
-          i0 <<= 1
-          i1 <<= 1
-          j <<= 1
-          u >>= 1
-        end
-      end
-      if changed
-        puts to_s
-        raise "mismatch #{check} #{to_i}" if check != to_i
-      end
-      changed
-    end
-
-    def rotate
-      0.upto(@zero - 1) do |base|
-        next if @tbl[base] <= 1
-        base = @zero - 1
-        z = @tbl[base].to_3 / 2
-        if 0 < z && z < 2**(@max_bin_width + @zero - base - 1)
-          @tbl[base] = 0
-          fill_left z, base + 1
-        end
-      end
-      while adj_11 || adj_101 || adj_1001 || adj_10001 do
-      end
-      while adj_1 do
-      end
-      self
-    end
-
-    def rotate
-      rv = @tbl[@zero - 1].to_3 / 2
-      return if rv.zero?
-      while 2**(@tbl.size - @zero) < rv
-        i = (Math.log2(rv) / (1 + Math.log2(3))).to_i
-        i = 0
-        j = ((Math.log2(rv / 2**i)/Math.log2(3))).to_i
-        #puts "rv = #{rv} i = #{i}"
-        bv = 2**i * 3**j
-        #puts "  2^#{i} 3^#{j} = #{bv}"
-        bit = @tbl[@zero + i] & (1 << j)
-        #puts "  bit = #{bit}"
-        while !bit.zero?
-          i += 1
-          j = ((Math.log2(rv / 2**i)/Math.log2(3))).to_i
-          bv = 2**i * 3**j
-          bit = @tbl[@zero + i] & (1 << j)
-        end
-        if bit.zero?
-          @tbl[@zero + i] |= (1 << j)
-          rv -= bv
-          #puts "   new rv = #{rv}"
-        else
-          break
-        end
-      end
-      @tbl[@zero - 1] = 0
-      p = 1
-      (@zero...@tbl.size).each do |idx|
-        rv += p * (@tbl[idx] & 1)
-        p <<= 1
-      end
-      idx = @zero
-      #puts "rv = #{rv}"
-      while 0 < rv
-        @tbl.push 0 if @tbl.size == idx
-        if rv % 2 == 0
-          @tbl[idx] >>= 1
-          @tbl[idx] <<= 1
-        else
-          @tbl[idx] |= 1
-        end
-        rv >>= 1
-        idx += 1
-      end
     end
 
     def log3 x
@@ -569,28 +294,8 @@ module C32
       add_at i + 1, j, rv
     end
 
-    def add_binary_column_dep rv
-      p = 1
-      (@zero...@tbl.size).each do |idx|
-        rv += p * (@tbl[idx] & 1)
-        p <<= 1
-      end
-      idx = @zero
-      #puts "rv = #{rv}"
-      while 0 < rv
-        @tbl.push 0 if @tbl.size == idx
-        if rv % 2 == 0
-          @tbl[idx] >>= 1
-          @tbl[idx] <<= 1
-        else
-          @tbl[idx] |= 1
-        end
-        rv >>= 1
-        idx += 1
-      end
-    end
-
     def add_binary_column rv, col=0
+      puts "rv = #{rv} for #{col}"
       p = 1
       z = 1 << col
       (@zero...@tbl.size).each do |idx|
@@ -598,7 +303,7 @@ module C32
         p <<= 1
       end
       idx = @zero
-      #puts "rv = #{rv}"
+      puts "rv = #{rv} for #{col}"
       while 0 < rv
         @tbl.push 0 if @tbl.size == idx
         if rv % 2 == 0
@@ -612,30 +317,7 @@ module C32
     end
 
     def rotate
-      rv = @tbl[@zero - 1].to_3 / 2
-      return if rv.zero?
-      bc = 0
-      p = 1
-      (@zero...@tbl.size).each do |idx|
-        bc += p * (@tbl[idx] & 1)
-        p <<= 1
-      end
-      max_bc = 2**(@tbl.size - @zero) - 1
-      #puts "rv #{rv}   bc #{bc}   max #{max_bc}"
-      while max_bc - bc < rv
-        i = 0
-        j = log3(rv).to_i - 1
-        break if j < 1
-        add_at i, j, rv
-        rv -= ijval i, j
-      end
-      @tbl[@zero - 1] = 0
-      add_binary_column rv if 0 < rv
-      return self
-    end
-
-    def rotate
-      rv = @tbl[@zero - 1].to_3 / 2
+      rv = @tbl[@zero - 1].from_3 / 2
       return if rv.zero?
       bits = @tbl[@zero - 1].bits
       @tbl[@zero - 1] = 0
@@ -663,6 +345,82 @@ module C32
         #fill_with values
       end
       return self
+    end
+
+    def rotate
+      z = @tbl[@zero - 1]
+      return self if z.zero?
+      rv = z.from_3 / 2
+      if rv < 2**(@tbl.size - @zero - 1)
+        @tbl[@zero - 1] = 0
+        add_binary_column rv
+      else
+        puts "start: #{to_i}  rv: #{rv}"
+        @tbl[@zero - 1] = 0
+        h = @tbl.size - @zero
+        pw = (h / Math.log2(3)).floor
+        pwmask = 2**pw - 1
+        puts "#{h} #{pw} #{pwmask.to_s(2).reverse} #{(z & ~pwmask).to_s(2).reverse}"
+        z1 = z & pwmask
+        z1_2 = z1.from_3
+        z2 = z >> pw
+        z2_2 = z2.from_3
+        puts "  #{z2} @ #{pw}  #{z2_2.to_s(2).reverse} #{Math.log2(z2_2).ceil}"
+        puts to_s
+        puts [to_i, rv].inspect
+        puts "   z1: #{z1_2}  z2: #{z2_2}"
+        puts "   z1: #{z1_2 / 2}  z2: #{z2_2 / 2} * #{3**pw}"
+        if 1 < z1_2
+          puts "adding #{z1_2 / 2} to column 0"
+          add_binary_column z1_2 / 2
+          puts to_s
+          puts [to_i, z2_2 / 2 * 3**pw].inspect
+        end
+        if 1 < z2_2
+          puts "adding #{z2_2 / 2} to column #{pw}"
+          add_binary_column z2_2 / 2, pw
+        end
+        puts to_s
+        puts "to_i = #{to_i}"
+        z = (z1_2 % 2) + (z2_2 % 2) * 2**pw
+        puts "  zr = #{z}  #{z.from_3}"
+        return self if z == 0
+        z.div32.each do |a|
+          idx = @zero
+          while 0 < a
+            c = a & @tbl[idx]
+            @tbl[idx] ^= c
+            a ^= c
+            @tbl[idx] |= a
+            a = c
+            idx += 1
+          end
+        end
+        (0 * Math.log2(h).ceil).times do |i|
+          break unless split h - Math.log2(h).ceil, 1
+        end
+      end
+      self
+    end
+
+    def split max_row, start
+      changed = false
+      0.upto(max_row) do |row|
+        idx = row + @zero
+        col = start
+        b = 1 << col
+        while b < @tbl[idx]
+          if 0 < @tbl[idx] & b
+            @tbl[idx] ^= b
+            add_at row, col - 1, 1
+            add_at row + 1, col - 1, 1
+            changed = true
+          end
+          b <<= 1
+          col += 1
+        end
+      end
+      changed
     end
 
     def collapse
