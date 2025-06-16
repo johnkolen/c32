@@ -71,5 +71,64 @@ module C32
       puts "=" * 3
       puts a.to_s
     end
+
+    it "paper" do
+      n = 8
+      n2 = 2**8 - 1
+      puts n2
+      a = Area.new n
+      a.set_diagonal_at n - 1, 0, 'a'
+      puts a.to_s
+      amax = 1
+      abits = 1
+      while amax * 3 < n2
+        amax *= 3
+        abits += 1
+      end
+      puts "-" * 8
+      puts "a" * abits
+      puts "amax = #{amax}"
+      puts "====="
+      bbits = n - abits + 1
+      a.set_diagonal_at n - 1, 0, '.'
+      ahx = (1..n).to_a.reverse
+      bmax = (2**bbits - 1)
+      puts "bmax = #{bmax}  #{bmax.to_s(2)}"
+      bh = (2**bbits - 1).from_3.size2
+      a.set_diagonal_at bh-1, abits, 'b'
+      bhx = ([0]*abits).concat((1...bh).to_a.reverse)
+      puts a.to_s
+      puts " " * abits + 'b' * bbits
+      puts "====="
+      a = Area.new n
+      a.set_at 0, n, 'c'
+      a.set_at 1, n, 'c'
+      a.set_at 2, n, 'c'
+      puts a.to_s
+      c32 = C32.new n2
+      r = c32.crinkle (1 + 2 + 4 + 8 + 16)*3**n
+      puts r.inspect
+      r.each_with_index do |v, col|
+        a.set_at v.size2 - 1, col, 'c'
+      end
+      puts a.to_s
+      puts '----'
+      r.each_with_index do |v, col|
+        a.set_diagonal_at v.size2 - 1, col, 'c'
+      end
+      puts a.to_s
+      puts ahx.inspect
+      puts bhx.inspect
+      puts r.map{|x| x.size2}.inspect
+      avx = ahx.map{|x| 2**x - 1}
+      bvx = bhx.map{|x| 2**x - 1}
+      puts avx.inspect
+      puts bvx.inspect
+      puts r.inspect
+      bvx.pop
+      all = avx.zip(bvx, r).map(&:sum)
+      puts all.inspect
+      puts all.map(&:size2).inspect
+    end
   end
 end

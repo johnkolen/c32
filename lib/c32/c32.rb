@@ -346,15 +346,18 @@ module C32
       bits = 0
       px = 2**@width
       #puts to_s
+      max_idx = 0
       @zero.upto(@tbl.size - 1) do |idx|
         excess = @tbl[idx] >> @width
         if 0 < excess
           cx += excess * 2**(idx - @zero)
           @tbl[idx] &= px - 1
           bits += 1
+          max_idx = idx
           # puts "#{idx-@zero} #{excess}   #{cx}"
         end
       end
+      #raise "max idx = #{max_idx}" if 3 < max_idx - @zero
       cx *= 3**@width
       if 0 < cx
         #puts "cx: #{cx} rows: #{bits}"
@@ -460,6 +463,12 @@ module C32
         u = r.pop
         r = r.map{|x| 2 * u + x}
         r[0] += u
+      end
+      if false && 4 < r[-1]
+        u = r.pop - 3
+        r = r.map{|x| 2 * u + x}
+        r[0] += u
+        r.push 3
       end
       r
     end

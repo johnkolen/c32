@@ -260,6 +260,30 @@ module C32
         expect(C32.minimal_bits 4616).to eq [8, 4608]
       end
     end
+    context "paper" do
+      it "representations of 127" do
+        v = 127
+        puts v
+        c = C32.new v
+        puts c.to_s
+        c = C32.new minimal: v
+        puts "==="
+        puts c.to_s
+        v3 = v.to_3
+        c = C32.new 0=> v3.first, 1=>v3.last
+        puts "==="
+        puts c.to_s
+      end
+      it "oscilation" do
+        c = C32.new 2
+        puts c.to_s
+        4.times do
+          puts "==="
+          c.iter
+          puts c.to_s
+        end
+      end
+    end
     context "playground" do
       it "min" do
         i = 9
