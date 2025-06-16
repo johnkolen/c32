@@ -21,5 +21,20 @@ module C32
       it { expect(Collatz.max 8).to eq [6560, 255] }
       it { expect(Collatz.max 9).to eq [19682, 511] }
     end
+    it "ratio" do
+      prev = 31
+      mul = 0
+      div = 0
+      Collatz.new(prev).iterate do |cur|
+        if prev < cur
+          mul += 1
+        else
+          div += 1
+        end
+        prev = cur
+      end
+      puts "mul = #{mul}  div = #{div}"
+      puts "ratio = #{mul.to_f/div.to_f}  #{Rational(mul, div)}"
+    end
   end
 end

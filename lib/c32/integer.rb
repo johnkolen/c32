@@ -79,4 +79,13 @@ class Integer
     [a, b]
   end
 
+  def size2
+    return self if self <= 2
+    Math.log2(self).ceil
+  end
+
+  def size3
+    return 1 if self <= 2
+    (Math.log(self) / Math.log(3)).ceil
+  end
 end

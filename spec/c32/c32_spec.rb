@@ -207,6 +207,49 @@ module C32
         puts "#{x}  #{x.to_s(2).reverse} :  #{x3}" if 2 * n < x3
       end
     end
+
+    context "crinkle" do
+      it "width 18" do
+        c = C32.new 2**18 - 1
+        tgt = 3486784401
+        r = c.crinkle tgt
+        puts r.inspect
+        expect(r.reverse.inject(0){|sum, x| 3 * sum + x }).to eq tgt
+      end
+
+      it "3^5 width 5 with one" do
+        c = C32.new 2**5 - 1
+        tgt = 3**5
+        r = c.crinkle tgt
+        expect(r.reverse.inject(0){|sum, x| 3 * sum + x }).to eq tgt
+        expect(r.map(&:size2).max).to be <= 5 + 1
+      end
+      it "many with one" do
+        3.upto(100) do |i|
+          c = C32.new 2**i - 1
+          tgt = 3**i
+          r = c.crinkle tgt
+          expect(r.reverse.inject(0){|sum, x| 3 * sum + x }).to eq tgt
+          expect(r.map(&:size2).max).to be <= i + 1
+        end
+      end
+      it "3^5 width 5 with two" do
+        c = C32.new 2**5 - 1
+        tgt = (1 + 2) * 3**5
+        r = c.crinkle tgt
+        expect(r.reverse.inject(0){|sum, x| 3 * sum + x }).to eq tgt
+      end
+      it "many with two" do
+        3.upto(100) do |i|
+          c = C32.new 2**i - 1
+          tgt = (1 + 2) * 3**i
+          r = c.crinkle tgt
+          expect(r.reverse.inject(0){|sum, x| 3 * sum + x }).to eq tgt
+          expect(r.map(&:size2).max).to be <= i + 1
+        end
+      end
+    end
+
     context "minimal" do
       it "works" do
         expect(C32.minimal_bits 31).to eq [4, 27]
@@ -220,7 +263,7 @@ module C32
     context "playground" do
       it "min" do
         i = 9
-        10.times do |j|
+        5.times do |j|
           bits = C32.minimal_bits (1 + i) / 2
           puts "#{j} #{((i+1)/2).to_s(3).reverse} #{bits.inspect} : #{i}"
           i *= 3

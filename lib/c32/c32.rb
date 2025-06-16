@@ -54,7 +54,8 @@ module C32
           end
         end
       end
-      height = @tbl.size - @zero
+      @width = to_i.size2
+      @height = width + 2
       @tbl.unshift 0
       @zero += 1
       #(height - @zero).times do
@@ -295,15 +296,13 @@ module C32
     end
 
     def add_binary_column rv, col=0
-      puts "rv = #{rv} for #{col}"
       p = 1
       z = 1 << col
       (@zero...@tbl.size).each do |idx|
-        rv += p * (@tbl[idx] & z)
+        rv += p * ((@tbl[idx] & z) >> col)
         p <<= 1
       end
       idx = @zero
-      puts "rv = #{rv} for #{col}"
       while 0 < rv
         @tbl.push 0 if @tbl.size == idx
         if rv % 2 == 0
@@ -316,91 +315,153 @@ module C32
       end
     end
 
-    def rotate
-      rv = @tbl[@zero - 1].from_3 / 2
-      return if rv.zero?
-      bits = @tbl[@zero - 1].bits
+    def rotate_ab z, exp
       @tbl[@zero - 1] = 0
-      if rv < 2**(@tbl.size - @zero - 1)
-        add_binary_column rv
-      else
-        bx = 2**(@tbl.size - @zero - 1) - 1
-        add_binary_column bx
-        rv -= bx
-        t = 0
-        while 0 < rv
-          b = rv % 3
-          if b == 2
-            add_at 1, t, 1
-          elsif b == 1
-            add_at 0, t, 1
-          end
-          t += 1
-          rv = rv / 3
+      awidth = (2**@width - 1).size3
+      a = z % 2**awidth
+      a2 = a.from_3
+      ac = a2 % 2
+      add_binary_column a2 / 2
+      b = z / 2**awidth
+      b2 = b.from_3
+      bc = b2 % 2
+      add_binary_column b2 / 2, awidth
+      return self if ac == 0 && bc == 0
+      z = ac + bc * 2**awidth
+      z.div32.each do |a|
+        idx = @zero
+        while 0 < a
+          c = a & @tbl[idx]
+          @tbl[idx] ^= c
+          a ^= c
+          @tbl[idx] |= a
+          a = c
+          idx += 1
         end
-        #puts "mimimal #{rv}"
-        #values = self.class.minimal_bits rv
-        #puts values.inspect
-        #puts "before: #{bits}  after: #{values.size} #{bits < values.size ? 'inc' : ''}"
-        #fill_with values
       end
-      return self
+    end
+
+    def extract_c exp
+      cx = 0
+      bits = 0
+      px = 2**@width
+      #puts to_s
+      @zero.upto(@tbl.size - 1) do |idx|
+        excess = @tbl[idx] >> @width
+        if 0 < excess
+          cx += excess * 2**(idx - @zero)
+          @tbl[idx] &= px - 1
+          bits += 1
+          # puts "#{idx-@zero} #{excess}   #{cx}"
+        end
+      end
+      cx *= 3**@width
+      if 0 < cx
+        #puts "cx: #{cx} rows: #{bits}"
+      end
+      raise "dropped something  #{@width}" unless to_i + cx == exp
+      cx
+    end
+
+    def rotate_c exp
+      cx = extract_c exp
+      if 0 < cx
+        r = crinkle cx
+        # puts r.inspect
+        delta = r.reverse.inject(0){|sum, x| 3 * sum + x }
+        raise "cx != delta    #{cx} != #{delta}  width: #{@width}" unless cx == delta
+        # puts "to_i=#{to_i} + #{cx} = #{exp}"
+        # puts "to_i=#{to_i} + #{delta} = #{exp}"
+        r.each_with_index do |u, j|
+          add_binary_column u, j if 0 < u
+        end
+        raise "bad after add c  (#{@width})" unless exp == to_i
+      end
     end
 
     def rotate
+      exp = to_i
       z = @tbl[@zero - 1]
       return self if z.zero?
-      rv = z.from_3 / 2
-      if rv < 2**(@tbl.size - @zero - 1)
+      z2 = z.from_3
+      if z2 < 2**(@width + 1)
         @tbl[@zero - 1] = 0
-        add_binary_column rv
+        add_binary_column z2 / 2
       else
-        puts "start: #{to_i}  rv: #{rv}"
-        @tbl[@zero - 1] = 0
-        h = @tbl.size - @zero
-        pw = (h / Math.log2(3)).floor
-        pwmask = 2**pw - 1
-        puts "#{h} #{pw} #{pwmask.to_s(2).reverse} #{(z & ~pwmask).to_s(2).reverse}"
-        z1 = z & pwmask
-        z1_2 = z1.from_3
-        z2 = z >> pw
-        z2_2 = z2.from_3
-        puts "  #{z2} @ #{pw}  #{z2_2.to_s(2).reverse} #{Math.log2(z2_2).ceil}"
+        rotate_ab z, exp
+      end
+      rotate_c exp
+      if exp != to_i
         puts to_s
-        puts [to_i, rv].inspect
-        puts "   z1: #{z1_2}  z2: #{z2_2}"
-        puts "   z1: #{z1_2 / 2}  z2: #{z2_2 / 2} * #{3**pw}"
-        if 1 < z1_2
-          puts "adding #{z1_2 / 2} to column 0"
-          add_binary_column z1_2 / 2
-          puts to_s
-          puts [to_i, z2_2 / 2 * 3**pw].inspect
-        end
-        if 1 < z2_2
-          puts "adding #{z2_2 / 2} to column #{pw}"
-          add_binary_column z2_2 / 2, pw
-        end
+        raise "lost something  #{exp} != #{to_i}"
+      end
+      check_width
+      self
+    end
+
+    def check_width
+      if @width < width
         puts to_s
-        puts "to_i = #{to_i}"
-        z = (z1_2 % 2) + (z2_2 % 2) * 2**pw
-        puts "  zr = #{z}  #{z.from_3}"
-        return self if z == 0
-        z.div32.each do |a|
-          idx = @zero
-          while 0 < a
-            c = a & @tbl[idx]
-            @tbl[idx] ^= c
-            a ^= c
-            @tbl[idx] |= a
-            a = c
-            idx += 1
+        raise "width broken #{@width} < #{width}"
+      end
+    end
+
+    def crinkle n
+      r = []
+      q = 2**(@width + 1)
+      base = 1
+      sum = 0
+      x = n
+      while q <= n
+        v = n % q
+        bc = v % base
+        s = 0
+        # puts "    v = #{v} = #{base} * #{v/base} + #{bc}"
+        if 0 < bc
+          j = -1
+          sum += bc
+          s += bc
+          basex = base / 3
+          while 0 < bc
+            bcx = bc / basex
+            r[j] += bcx
+            bc = bc % basex
+            basex = basex / 3
+            j -= 1
           end
         end
-        (0 * Math.log2(h).ceil).times do |i|
-          break unless split h - Math.log2(h).ceil, 1
-        end
+        r << (v / base)
+        sum += (v / base) * base
+        s += (v / base) * base
+        n -= v
+        raise "bad" unless x == sum + n
+        rs = r.reverse.inject(0){|sum, x| 3 * sum + x }
+        # puts "    #{sum}  #{rs}"
+        raise "r bad #{sum} != #{rs}" unless sum == rs
+        q >>= 1
+        q *= 3
+        base *= 3
       end
-      self
+      #puts "rs = #{rs} n = #{n} :#{rs + n}  #{x}"
+
+      idx = r.size
+      p3 = 3**idx
+      while 0 < n
+        r[idx] = 0 if r.size <= idx
+        v = n / p3
+        r[idx] += v
+        sum += v * p3
+        n -= v * p3
+        idx -= 1
+        p3 = p3 / 3
+      end
+      r.pop while r.last == 0
+      while @width < r.size
+        u = r.pop
+        r = r.map{|x| 2 * u + x}
+        r[0] += u
+      end
+      r
     end
 
     def split max_row, start
@@ -584,14 +645,16 @@ module C32
 
     def to_s
       i = @tbl.size - 1
+      out = []
       while 0 <= i
         if i == @zero
-          puts ">#{@tbl[i].to_s(2).reverse}"
+          out << ">#{@tbl[i].to_s(2).reverse}"
         else
-          puts " #{@tbl[i].to_s(2).reverse}"
+          out << " #{@tbl[i].to_s(2).reverse}"
         end
         i -= 1
       end
+      out.join("\n")
     end
   end
 end

@@ -5,6 +5,7 @@ require_relative 'values'
 module C32
   m = 3
   n = 3
+  bits = nil
   action = :one
   case ARGV[0]
   when /\d+/
@@ -14,6 +15,11 @@ module C32
     m = (ARGV[2] || m).to_i
     m, n = [n, m] if n < m
     action = :table
+  when /--all/
+    bits = ARGV[1].to_i
+    n = 2**bits - 1
+    m = 2**(bits - 1) + 1
+    action = :all
   end
 
   case action
@@ -22,6 +28,19 @@ module C32
     puts c.to_s
     puts c.to_i
     puts c.dimensions.inspect
+  when :all
+    c = C32.footprint m
+    (m + 2).step(n,2) do |i|
+      c.or_eq C32.footprint i
+    end
+    cs = c.to_s
+    puts cs
+    puts c.to_i
+    rows, cols =  c.dimensions
+    puts "rows: #{rows}  cols: #{cols}"
+    if bits < cols || cols + 2 < rows
+      puts "****** VIOLATES HYPOTHESIS ******"
+    end
   when :table
     m.upto(n) do |i|
       v = VALUES[i - 3]
@@ -34,6 +53,9 @@ module C32
 
       puts "%2d %6.3f %6.3f %2d %2d x %2d" % [i, vbits, vtrits, max_v_bits, d.first, d.last]
       STDOUT.flush
+      if d.first > d.last + 2 || d.last > i
+        raise "cain"
+      end
     end
   end
 end
