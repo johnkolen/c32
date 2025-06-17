@@ -81,7 +81,7 @@ class Integer
 
   def size2
     return self if self <= 2
-    Math.log2(self).ceil
+    Math.log2(self + 0.000001).ceil
   end
 
   def size3

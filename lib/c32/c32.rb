@@ -58,12 +58,7 @@ module C32
       @height = width + 2
       @tbl.unshift 0
       @zero += 1
-      #(height - @zero).times do
-      #  @tbl.unshift 0
-      #end
-      #@zero += (height - @zero)
-      #@tbl.push 0
-      #@max_bin_width = (@tbl.size - 1) / 2
+      @max_side = 0
     end
 
     alias old_dup dup
@@ -75,6 +70,10 @@ module C32
 
     def width
       @tbl.map{|x| x.zero? ? 1 : Math.log2(x).ceil.to_i }.max
+    end
+
+    def fixed_width
+      @width
     end
 
     def dimensions
@@ -282,6 +281,26 @@ module C32
       2**i * 3**j
     end
 
+    def get_at i, j
+      t = @tbl[i + @zero]
+      return nil if t.nil?
+      pwr = 2**j
+      return nil if t < pwr
+      (t >> j) & 1
+    end
+
+    def set_at i, j, v
+      while @tbl.size - 1 < i + @zero
+        @tbl.push 0
+      end
+      bit = @tbl[@zero + i] & (1 << j)
+      if v == 1
+        @tbl[@zero + i] |= (1 << j)
+      else
+        @tbl[@zero + i] ^= (1 << j)
+      end
+    end
+
     def add_at i, j, rv
       while @tbl.size - 1 < i + @zero
         @tbl.push 0
@@ -341,6 +360,59 @@ module C32
       end
     end
 
+    def rotate_a z, exp
+      @tbl[@zero - 1] = 0
+      awidth = (2**@width - 1).size3
+      a = z % 2**awidth
+      a2 = a.from_3
+      @ac = a2 % 2
+      add_binary_column a2 / 2
+      z / 2**awidth
+    end
+
+    def rotate_b b, exp
+      b2 = b.from_3
+      bc = b2 % 2
+      awidth = (2**@width - 1).size3
+      add_binary_column b2 / 2, awidth
+      return self if @ac == 0 && bc == 0
+      z = @ac + bc * 2**awidth
+      z.div32.each do |a|
+        idx = @zero
+        while 0 < a
+          c = a & @tbl[idx]
+          @tbl[idx] ^= c
+          a ^= c
+          @tbl[idx] |= a
+          a = c
+          idx += 1
+        end
+      end
+    end
+
+    def rotate_b exp
+      start = (2**@width - 1).size3
+      v = 2**start
+      #puts start
+      #puts get_at -1, start
+      while v <= @tbl[@zero - 1] do
+        #puts "#{v} <= #{@tbl[@zero - 1].from_3}    #{@tbl[@zero - 1].to_s(2).reverse}"
+        start.upto(@width) do |j|
+          next unless 1 == get_at(-1, j)
+          #puts "found #{j}"
+          j.downto(start - 1) do |jj|
+            next unless 1 == get_at(-1, jj)
+            set_at -1, jj, 0
+            add_at -1, jj - 1, 1
+            add_at 0, jj - 1, 1
+          end
+          #puts to_s
+          #puts "===="
+          raise "bad after add b (#{@width})" unless exp == to_i
+        end
+      end
+    end
+
     def extract_c exp
       cx = 0
       bits = 0
@@ -355,6 +427,10 @@ module C32
           bits += 1
           max_idx = idx
           # puts "#{idx-@zero} #{excess}   #{cx}"
+          if @max_side < idx - @zero
+            @max_side = idx - @zero
+            puts "max_side = #{@max_side}"
+          end
         end
       end
       #raise "max idx = #{max_idx}" if 3 < max_idx - @zero
@@ -382,6 +458,43 @@ module C32
       end
     end
 
+    def rotate_c_tri exp
+      @zero.upto(@tbl.size - 1) do |idx|
+        z = @tbl[idx]
+        next if z.zero?
+        z >>= @width
+        next if z.zero?
+        raise "too many bits" if 1 < z
+        replace_tri idx - @zero, @width
+        raise "bad value #{exp} != #{to_i}" if exp != to_i
+      end
+    end
+
+    def rotate_c exp
+      @zero.upto(@tbl.size - 1) do |idx|
+        z = @tbl[idx]
+        next if z.zero?
+        z >>= @width
+        next if z.zero?
+        raise "too many bits" if 1 < z
+        set_at idx - @zero, @width, 0
+        i = idx - @zero
+        j = @width - 1
+        while 1 < j && i < @width - 1
+          add_at i, j, 1
+          i += 1
+          j -= 1
+        end
+        add_at i, j, 1
+        add_at i + 1, j, 1
+        raise "bad value #{exp} != #{to_i}" if exp != to_i
+        if @max_side < idx - @zero
+          @max_side = idx - @zero
+          #puts "max_side = #{@max_side}"
+        end
+      end
+    end
+
     def rotate
       exp = to_i
       z = @tbl[@zero - 1]
@@ -391,7 +504,12 @@ module C32
         @tbl[@zero - 1] = 0
         add_binary_column z2 / 2
       else
-        rotate_ab z, exp
+        #b = rotate_a z, exp
+        #rotate_b b, exp
+        rotate_b exp
+        #puts "finished with b #{@tbl[@zero - 1].to_s(2).reverse}"
+        rotate_a @tbl[@zero - 1], exp
+        #puts "finished with a #{@tbl[@zero - 1].to_s(2).reverse}"
       end
       rotate_c exp
       if exp != to_i
@@ -407,6 +525,61 @@ module C32
         puts to_s
         raise "width broken #{@width} < #{width}"
       end
+    end
+
+    def replace i, j
+      v = get_at i,j
+      return self if v == 0
+      set_at i, j, 0
+      (0...j).each do |jx|
+        add_at i + 1, jx, 1
+      end
+      add_at i, 0, 1
+      self
+    end
+
+    def replace_tri i, j
+      v = get_at i,j
+      return self if v == 0
+      set_at i, j, 0
+      tri = []
+      s = 0
+      0.upto(@width-1) do |u|
+        0.upto(u) do |j|
+          v = 2**(u - j) * 3**j
+          s += v
+          tri << [s, v, u - j, j]
+        end
+      end
+      z = 2**i * 3**j
+      while 1 < z
+        idx = tri.last.first <= z ?
+                tri.size :
+                tri.bsearch_index{|x| x.first >= z}
+        t = tri[idx - 1]
+        idx.times {|i| add_at tri[i][2], tri[i][3], 1 }
+        z -= t.first
+      end
+      add_at 0, 0, 1 if z == 1
+      self
+    end
+
+    def max_ij
+      m = 0
+      (@zero...@tbl.size).each do |idx|
+        i = idx - @zero
+        j = 0
+        z = @tbl[idx]
+        while 0 < z
+          if 0 < z & 1
+            v = i + j
+            m = v if m < v
+          end
+          j += 1
+          z >>= 1
+        end
+      end
+      m
     end
 
     def crinkle n

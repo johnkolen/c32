@@ -249,6 +249,20 @@ module C32
         end
       end
     end
+    it "rotate b" do
+      n = 8
+      c = C32.new 2**(n-1)
+      c.set_at n - 1, 0, 0
+      c.set_at -1, n, 1
+      c.set_at -1, n - 1, 1
+      c.set_at -1, n - 2, 1
+      c.set_at -1, 0, 1
+      v = c.to_i
+      puts c.fixed_width
+      puts c.to_s
+      c.rotate_b v
+      puts c.to_s
+    end
 
     context "minimal" do
       it "works" do
@@ -292,6 +306,101 @@ module C32
           puts "#{j} #{((i+1)/2).to_s(3).reverse} #{bits.inspect} : #{i}"
           i *= 3
         end
+      end
+
+      it "replace" do
+        n = 8
+        c = C32.new 0=>2**n
+        puts c.to_s
+        v = c.to_i
+        c.replace 0, n
+        puts "=" * 10
+        puts c.to_s
+        expect(c.to_i).to eq v
+        c.replace 1, n - 1
+        puts "=" * 10
+        puts c.to_s
+        expect(c.to_i).to eq v
+        c.replace 1, n - 2
+        puts "=" * 10
+        puts c.to_s
+        expect(c.to_i).to eq v
+        c.replace 2, n - 2
+        puts "=" * 10
+        puts c.to_s
+        expect(c.to_i).to eq v
+        c.replace 4, n - 3
+        puts "=" * 10
+        puts c.to_s
+        expect(c.to_i).to eq v
+        c.replace 5, n - 4
+        puts "=" * 10
+        puts c.to_s
+        expect(c.to_i).to eq v
+      end
+      context "replace triangle" do
+      it "replaca" do
+        i = 0
+        n = 8
+        c = C32.new 2**(n-1)
+        puts c.fixed_width
+        c.set_at n-1, 0, 0
+        c.set_at i, n, 1
+        puts c.to_s
+        puts c.to_i
+        puts "===="
+        c.replace_tri i,n
+        puts c.to_s
+        puts c.to_i
+        puts "max i+j = #{c.max_ij}"
+      end
+      it "replaca 2" do
+        i = 1
+        n = 8
+        c = C32.new 2**(n-1)
+        puts c.fixed_width
+        c.set_at n-1, 0, 0
+        c.set_at i, n, 1
+        puts c.to_s
+        puts c.to_i
+        puts "===="
+        c.replace_tri i,n
+        puts c.to_s
+        puts c.to_i
+        puts "max i+j = #{c.max_ij}"
+      end
+      it "replaca 1 and 2" do
+        i = 1
+        n = 8
+        c = C32.new 2**(n-1)
+        puts c.fixed_width
+        c.set_at n-1, 0, 0
+        c.set_at i, n, 1
+        c.set_at i - 1, n, 1
+        puts c.to_s
+        puts c.to_i
+        puts "===="
+        c.replace_tri i,n
+        c.replace_tri i - 1,n
+        puts c.to_s
+        puts c.to_i
+        puts "max i+j = #{c.max_ij}"
+      end
+      it "replaca 4" do
+        i = 2
+        n = 8
+        c = C32.new 2**(n-1)
+        puts c.fixed_width
+        c.set_at n-1, 0, 0
+        c.set_at i, n, 1
+        puts c.to_s
+        puts c.to_i
+        puts "===="
+        c.replace_tri i,n
+        puts c.to_s
+        puts c.to_i
+        puts "max i+j = #{c.max_ij}"
+      end
       end
     end
   end

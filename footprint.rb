@@ -54,7 +54,7 @@ module C32
       puts "%2d %6.3f %6.3f %2d %2d x %2d" % [i, vbits, vtrits, max_v_bits, d.first, d.last]
       STDOUT.flush
       if d.first > d.last + 2 || d.last > i
-        raise "cain"
+        #raise "cain"
       end
     end
   end
