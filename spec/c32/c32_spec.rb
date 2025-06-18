@@ -264,6 +264,25 @@ module C32
       puts c.to_s
     end
 
+    context "row col sums" do
+      let(:c) { C32.new 0=>7, 2=>3 }
+      it {expect(c.row_sum(0)).to eq 13}
+      it {expect(c.row_sum(1)).to eq 0}
+      it {expect(c.row_sum(2)).to eq 4}
+      it {expect(c.col_sum(0)).to eq 5}
+      it {expect(c.col_sum(1)).to eq 5}
+      it {expect(c.col_sum(2)).to eq 1}
+      it {expect(c.col_sum(3)).to eq 0}
+    end
+    context "find value" do
+      let(:c) { C32.new 0=>7, 2=>3 }
+      let(:ary) {[[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0],
+                  [6, 0], [5, 1], [4, 2], [3, 3], [2, 4]]}
+      it { expect(c.find_value 4, ary).to eq [[2, 0]] }
+      it { expect(c.find_value 3, ary).to eq [[0, 0], [1, 0]] }
+      it { expect(c.find_value 32*3, ary).to eq [[5, 1]] }
+    end
+
     context "minimal" do
       it "works" do
         expect(C32.minimal_bits 31).to eq [4, 27]

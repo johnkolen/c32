@@ -281,6 +281,20 @@ module C32
       2**i * 3**j
     end
 
+    def row_sum i
+      @tbl[i + @zero].from_3
+    end
+
+    def col_sum j
+      s = 0
+      @tbl.each_with_index do |v, idx|
+        next if idx < @zero
+        b = (v >> j) & 1
+        s += b * 2**(idx - @zero)
+      end
+      s
+    end
+
     def get_at i, j
       t = @tbl[i + @zero]
       return nil if t.nil?
@@ -520,6 +534,86 @@ module C32
       self
     end
 
+    def find_value_rec x, ary, idx
+      return [] if x == 0
+      return nil if ary.empty?
+      while 0 <= idx &&  x < ary[idx].first
+        idx -= 1
+      end
+      return nil if idx < 0
+      v, i, j = ary[idx]
+      r = find_value_rec x - v, ary, idx - 1
+      return r.push [i, j] if r
+      return find_value_rec x, ary, idx - 1
+    end
+
+    def find_value x, ary
+      a = []
+      ary.each do |i, j|
+        v = 2**i * 3**j
+        a.push [v, i, j] if v < x
+        return [[i, j]] if v == x
+      end
+      a.sort!
+      r = find_value_rec x, a, a.size - 1
+      return r if r
+      r = []
+      while !a.empty? && 0 < x
+        v, i, j = a.pop
+        if v < x
+          r << [i, j]
+          x -= v
+        end
+      end
+      r << [x] if 0 < x
+      r
+    end
+
+    def rotate
+      exp = to_i
+      puts to_s
+      erow = row_sum(-1) / 2
+      ecol= col_sum(@width) * 3**@width
+      e = erow  + ecol
+      return self if e == 0
+      puts "escapee row: #{erow}"
+      puts "escapee col: #{ecol}"
+      ary = []
+      0.upto(@width) do |i|
+        if 0 == (get_at(i, 0) || 0)
+          ary.push [i, 0]
+        end
+      end
+      0.upto(@width-1) do |j|
+        if 0 == get_at(@width + 1 - j, j) || 0
+          ary.push [@width + 1 - j, j]
+        end
+      end
+      puts @width
+      puts ary.inspect
+      puts "e = #{e}"
+      r = find_value e, ary
+      puts r.inspect
+      r.each do |i, j|
+        if j
+          set_at i, j, 1
+        else
+          add_binary_column i
+        end
+      end
+      @tbl[@zero - 1] = 0
+      if 0 < ecol
+        puts "setting ecol"
+        set_at 0, @width, 0
+        set_at 1, @width, 0
+        set_at 2, @width, 0
+      end
+      if exp != to_i
+        puts to_s
+        raise "exp != to_i:  #{exp} != #{to_i}"
+      end
+      raise "cain" unless r
+    end
     def check_width
       if @width < width
         puts to_s

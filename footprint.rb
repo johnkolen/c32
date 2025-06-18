@@ -28,6 +28,13 @@ module C32
     puts c.to_s
     puts c.to_i
     puts c.dimensions.inspect
+    i = n
+    exp_max = 3*(3**(i+2) - 1) / 2 - 2**(i+3) - 1 - 2*3**(i + 1)
+    max_v = Collatz.new(VALUES[n - 3]).max
+    puts "max: #{max_v} < #{exp_max}"
+    if exp_max < max_v
+      puts "bad"
+    end
   when :all
     c = C32.footprint m
     (m + 2).step(n,2) do |i|
@@ -50,8 +57,9 @@ module C32
       max_v_bits = Math.log2(max_v).ceil.to_i
       c = C32.footprint v
       d = c.dimensions
-
+      exp_max = 3*(3**(i+2) - 1) / 2 - 2**(i+3) - 1 - 2*3**(i + 1)
       puts "%2d %6.3f %6.3f %2d %2d x %2d" % [i, vbits, vtrits, max_v_bits, d.first, d.last]
+      puts "   #{max_v} < #{exp_max}"
       STDOUT.flush
       if d.first > d.last + 2 || d.last > i
         #raise "cain"
