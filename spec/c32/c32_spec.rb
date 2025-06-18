@@ -133,6 +133,22 @@ module C32
         end
       end
     end
+
+    context "get at" do
+      let(:c) { C32.new 0=>7, 2=>3, 5=>1 }
+      it { expect(c.get_at 0, 0).to eq 1}
+      it { expect(c.get_at 0, 1).to eq 1}
+      it { expect(c.get_at 0, 2).to eq 1}
+      it { expect(c.get_at 0, 3).to eq 0}
+      it { expect(c.get_at 6, 0).to eq 0}
+    end
+
+    context "set at" do
+      let(:c) { C32.new 0=>7, 2=>3, 5=>1 }
+      it { c.set_at(0, 3, 1); expect(c.get_at 0, 3).to eq 1}
+      it { c.set_at(0, 3, 0); expect(c.get_at 0, 3).to eq 0}
+    end
+
     context "fill" do
       it "triangle" do
         z = C32.new(27 << 3)

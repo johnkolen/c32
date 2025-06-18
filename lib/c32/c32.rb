@@ -299,7 +299,7 @@ module C32
       t = @tbl[i + @zero]
       return nil if t.nil?
       pwr = 2**j
-      return nil if t < pwr
+      return 0 if t < pwr
       (t >> j) & 1
     end
 
@@ -311,7 +311,7 @@ module C32
       if v == 1
         @tbl[@zero + i] |= (1 << j)
       else
-        @tbl[@zero + i] ^= (1 << j)
+        @tbl[@zero + i] &= ~(1 << j)
       end
     end
 
@@ -509,7 +509,7 @@ module C32
       end
     end
 
-    def rotate
+    def dep_rotate
       exp = to_i
       z = @tbl[@zero - 1]
       return self if z.zero?
@@ -576,38 +576,85 @@ module C32
       ecol= col_sum(@width) * 3**@width
       e = erow  + ecol
       return self if e == 0
+      puts "exp = #{exp}"
       puts "escapee row: #{erow}"
       puts "escapee col: #{ecol}"
       ary = []
-      0.upto(@width) do |i|
+      available = 0
+      h = @width + 2
+      h += 1 if @width <= 5
+      0.upto(h-2) do |i|
         if 0 == (get_at(i, 0) || 0)
           ary.push [i, 0]
+          available += 2**i
         end
       end
       0.upto(@width-1) do |j|
-        if 0 == get_at(@width + 1 - j, j) || 0
-          ary.push [@width + 1 - j, j]
+        i = h - 1 - j
+        if 0 == (get_at(i, j) || 0)
+          ary.push [i, j]
+          available += 2**i * 3**j
         end
       end
+      puts "available = #{available}"
+      puts "e = #{e}"
+      if available < e
+        (@width - 1).downto(1) do |j|
+          if 0 == (get_at(0, j) || 0)
+            v = 3**j
+            e -= v
+            set_at(0, j, 1)
+          end
+          if 0 == (get_at(1, j) || 0)
+            v = 2 * 3**j
+            e -= v
+            set_at(1, j, 1)
+          end
+        end
+        puts "e now is #{e}"
+      end
+      if available < e
+        (@width - 2).downto(1) do |j|
+          if 0 == (get_at(2, j) || 0)
+            v = 4 * 3**j
+            e -= v
+            set_at(2, j, 1)
+          end
+        end
+        puts "e now is #{e}"
+        puts to_s
+      end
+      raise "need more " if available < e
       puts @width
       puts ary.inspect
       puts "e = #{e}"
       r = find_value e, ary
       puts r.inspect
+      restored = 0
+      @tbl[@zero - 1] = 0
+      puts "start #{to_i}"
       r.each do |i, j|
         if j
+          raise "bit taken #{i},#{j}" if get_at(i, j) == 1
           set_at i, j, 1
+          v = 2**i * 3**j
+          restored += v
+          puts "#{v} #{to_i}"
         else
+          puts "extra: #{i}"
           add_binary_column i
         end
       end
-      @tbl[@zero - 1] = 0
+      puts "restored = #{restored}"
+      puts "to_i (fract = 0): #{to_i}"
       if 0 < ecol
         puts "setting ecol"
-        set_at 0, @width, 0
-        set_at 1, @width, 0
-        set_at 2, @width, 0
+        (h-@width + 1).times do |i|
+          set_at i, @width, 0
+          raise "cain" unless get_at(i, @width) == 0
+        end
       end
+      check_width
       if exp != to_i
         puts to_s
         raise "exp != to_i:  #{exp} != #{to_i}"
