@@ -11,6 +11,17 @@ module C32
       it { expect(C32.new(0=>3, 1=>1).to_i).to eq 6 }
       it { expect(C32.new(bits: [9, 48, 64]).to_i).to eq 121 }
       it { expect(C32.new(minimal: 121).to_i).to eq 121 }
+      it "parses" do
+        s = <<~EOS
+         1
+         01
+        >101
+         0
+        EOS
+        c = C32.new s
+        puts c.to_s
+        expect(c.to_i).to eq 20
+      end
     end
 
     it "dup" do
@@ -299,6 +310,14 @@ module C32
       it { expect(c.find_value 32*3, ary).to eq [[5, 1]] }
     end
 
+    context "check trapezoid" do
+      it do
+        c = C32.new  8=>1, 6=> 3, 5=> 5, 4=>1, 3=>4, 2=>26, 1=>25, 0=>13
+        expect(c.to_i).to eq 1619
+        c.set_fixed_width 6
+        expect{c.check_trapezoid}.to raise_error String
+      end
+    end
     context "minimal" do
       it "works" do
         expect(C32.minimal_bits 31).to eq [4, 27]
@@ -372,6 +391,31 @@ module C32
         puts "=" * 10
         puts c.to_s
         expect(c.to_i).to eq v
+      end
+
+      context "problems" do
+        it "1079 width 6" do
+          c = C32.new <<~EOS
+           1
+           01
+           0
+           01
+           1011
+           0011
+           011
+          >110001
+           0
+          EOS
+          c.set_fixed_width 6
+          expect(c.to_i).to eq 1079
+          puts c.to_s
+          c.check_trapezoid
+          c.mul3.add1.div2
+          puts c.to_s
+          c.check_trapezoid
+          #c.rotate
+          c.check_trapezoid
+        end
       end
       context "replace triangle" do
       it "replaca" do

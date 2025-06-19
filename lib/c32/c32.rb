@@ -10,6 +10,8 @@ module C32
       @zero = 0
       if options.empty?
         raise "missing n" if n.nil?
+        return parse(n) if n.is_a? String
+
         if true
           while 0 < n
             @tbl.push n & 1
@@ -74,6 +76,10 @@ module C32
 
     def fixed_width
       @width
+    end
+
+    def set_fixed_width n
+      @width = n
     end
 
     def dimensions
@@ -570,20 +576,23 @@ module C32
     end
 
     def rotate
+      puts "rotate"
+      check_trapezoid
       exp = to_i
       puts to_s
       erow = row_sum(-1) / 2
       ecol= col_sum(@width) * 3**@width
       e = erow  + ecol
       return self if e == 0
-      puts "exp = #{exp}"
-      puts "escapee row: #{erow}"
-      puts "escapee col: #{ecol}"
+      # puts "exp = #{exp}"
+      # puts "escapee row: #{erow}"
+      # puts "escapee col: #{ecol}"
       ary = []
       available = 0
       h = @width + 2
-      h += 1 if @width <= 5
+      h += 2 if @width <= 5
       0.upto(h-2) do |i|
+        break
         if 0 == (get_at(i, 0) || 0)
           ary.push [i, 0]
           available += 2**i
@@ -598,32 +607,35 @@ module C32
       end
       puts "available = #{available}"
       puts "e = #{e}"
-      if available < e
-        (@width - 1).downto(1) do |j|
-          if 0 == (get_at(0, j) || 0)
-            v = 3**j
-            e -= v
-            set_at(0, j, 1)
-          end
-          if 0 == (get_at(1, j) || 0)
-            v = 2 * 3**j
-            e -= v
-            set_at(1, j, 1)
-          end
-        end
-        puts "e now is #{e}"
-      end
-      if available < e
-        (@width - 2).downto(1) do |j|
-          if 0 == (get_at(2, j) || 0)
-            v = 4 * 3**j
-            e -= v
-            set_at(2, j, 1)
-          end
-        end
-        puts "e now is #{e}"
-        puts to_s
-      end
+      check_trapezoid
+
+      # if available < e
+      #   (@width - 1).downto(1) do |j|
+      #     if 0 == (get_at(0, j) || 0)
+      #       v = 3**j
+      #       e -= v
+      #       set_at(0, j, 1)
+      #     end
+      #     if 0 == (get_at(1, j) || 0)
+      #       v = 2 * 3**j
+      #       e -= v
+      #       set_at(1, j, 1)
+      #     end
+      #   end
+      #   puts "e now is #{e}"
+      # end
+      # if available < e
+      #   (@width - 2).downto(1) do |j|
+      #     if 0 == (get_at(2, j) || 0)
+      #       v = 4 * 3**j
+      #       e -= v
+      #       set_at(2, j, 1)
+      #     end
+      #   end
+      #   puts "e now is #{e}"
+      #   puts to_s
+      # end
+
       raise "need more " if available < e
       puts @width
       puts ary.inspect
@@ -632,17 +644,21 @@ module C32
       puts r.inspect
       restored = 0
       @tbl[@zero - 1] = 0
-      puts "start #{to_i}"
+      #puts "start #{to_i}"
       r.each do |i, j|
         if j
           raise "bit taken #{i},#{j}" if get_at(i, j) == 1
+          puts "setting #{i}, #{j}"
           set_at i, j, 1
+          check_trapezoid
           v = 2**i * 3**j
           restored += v
-          puts "#{v} #{to_i}"
+          #puts "#{v} #{to_i}"
         else
           puts "extra: #{i}"
+          puts to_s
           add_binary_column i
+          check_trapezoid
         end
       end
       puts "restored = #{restored}"
@@ -654,7 +670,7 @@ module C32
           raise "cain" unless get_at(i, @width) == 0
         end
       end
-      check_width
+      check_trapezoid
       if exp != to_i
         puts to_s
         raise "exp != to_i:  #{exp} != #{to_i}"
@@ -665,6 +681,27 @@ module C32
       if @width < width
         puts to_s
         raise "width broken #{@width} < #{width}"
+      end
+    end
+
+    def check_trapezoid
+      h = @width + 2
+      h += 2 if @width <= 5
+      (h...@tbl.size).each do |i|
+        r = @tbl[h + @zero]
+        if r && 0 < r
+          puts to_s
+          raise "trapezoid violation #{i},#{0} for width = #{@width} height = #{h}"
+        end
+      end
+      @width.times do |j|
+        i = h - j - 1
+        #puts [i,j].inspect
+        if 1 < ((@tbl[@zero + i] || 0) >> j)
+          puts to_s
+          puts @tbl[@zero + h - j - 1].to_s(2).reverse
+          raise "trapezoid violation #{i},#{j} for width = #{@width} height = #{h}"
+        end
       end
     end
 
@@ -840,8 +877,15 @@ module C32
     end
 
     def iter
+      check_trapezoid
       if to_i % 2 == 1
-        mul3.add1.div2.rotate
+        puts "************ #{to_i}"
+        puts to_s
+        m = mul3
+        puts to_s
+        a = m.add1
+        puts to_s
+        a.div2.rotate
       else
         div2.rotate
       end
@@ -978,6 +1022,26 @@ module C32
         i -= 1
       end
       out.join("\n")
+    end
+
+    def parse str
+      @zero = 0
+      str.each_line do |line|
+        v = 0
+        @zero += 1
+        line.reverse.each_char do |c|
+          case c
+          when '1'
+            v = 2 * v + 1
+          when '0'
+            v = 2 * v
+          when '>'
+            @zero = 0
+          end
+        end
+        @tbl.push v
+      end
+      @tbl.reverse!
     end
   end
 end
