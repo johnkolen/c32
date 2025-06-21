@@ -364,6 +364,15 @@ module C32
       end
     end
 
+    # v is base-3 rep
+    def add_col_at i, j, v
+      while 0 < v
+        add_at i, j, 1 if v & 1 == 1
+        v >>= 1
+        j += 1
+      end
+    end
+
     def rotate_ab z, exp
       @tbl[@zero - 1] = 0
       awidth = (2**@width - 1).size3
@@ -933,6 +942,33 @@ module C32
         add_at *ij, 1
       end
       @tbl[@zero - 1] = 0
+      raise "#{exp} #{to_i}" unless exp == to_i
+    end
+
+    def rotate_ell mul=false
+      exp = to_i
+      v = @tbl[@zero - 1].from_3 / 2
+      add_at 0, 0, v
+      @tbl[@zero - 1] = 0
+      if mul
+        mask = 2**@width - 1
+        t = 1
+        (@zero...@tbl.size).each do |i|
+          i = idx - @zero
+          v = @tbl[idx] >> @width
+          if 0 < v
+            raise "cain" if 1 < v
+            sum += t
+          end
+          @tbl[idx] &= mask
+          t <<= 1
+        end
+        sum *= 3**@width
+        add_at 0, 0, sum % (mask + 1)
+        u1, u2 = (sum / (mask + 1)).to_3
+        add_row_at @width, 0, u1
+        add_row_at @width + 1, 0, u2
+      end
       raise "#{exp} #{to_i}" unless exp == to_i
     end
 
