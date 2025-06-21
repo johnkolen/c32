@@ -37,11 +37,13 @@ def even3 n, v=0, c=0
       y=(v/2).to_s(3).gsub("0","").size
       z = 9999999
       if c < x && c < y
-        z = dbmin @w - 1, @w - 1, v/2
+        z = C32::C32.minimal_bits(v/2).size
         if c < z
           @failed += 1
-          puts "#{c}:#{x}:#{y} #{v} #{v/2} #{(v/2).bits}  #{(v/2).to_s(2)} #{xs}"
-          puts z
+          puts v.to_s(3)
+          puts (v/2).to_s(3)
+          #puts "#{c}:#{x}:#{y} #{v} #{v/2} #{(v/2).bits}  #{(v/2).to_s(2)} #{xs}"
+          #puts z
         end
       end
       @bits_in += c
@@ -54,16 +56,17 @@ def even3 n, v=0, c=0
 end
 
 1.upto(10) do |k|
+  break
   v = 1 + 3**k
   v = v/2
-  mx = dbmin k+1, k+1, v
+  mx = C32::C32.minimal_bits v
   xs = v.to_s(2).
          gsub("11","a0").
          gsub(/1([a0])([a0])1/,'b\1\20')
   y=v.to_s(3).gsub("11","a0").gsub("22","b0").gsub("0","").size
   puts "#{v}  #{mx.inspect}  #{xs.gsub("0").size}  #{y}"
 end
-exit
+
 5.upto(30) do |k|
   @bits_in = 0
   @bits_out = 0

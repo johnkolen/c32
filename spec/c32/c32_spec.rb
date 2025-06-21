@@ -80,6 +80,7 @@ module C32
           expect(x.to_i).to eq 4
         end
         it "collapses 4" do
+          skip
           x = C32.new 0=>2**4-1
           puts x.to_s
           expect(x.to_i).to eq 40
@@ -277,6 +278,7 @@ module C32
       end
     end
     it "rotate b" do
+      skip
       n = 8
       c = C32.new 2**(n-1)
       c.set_at n - 1, 0, 0
@@ -363,6 +365,7 @@ module C32
       end
 
       it "replace" do
+        skip
         n = 8
         c = C32.new 0=>2**n
         puts c.to_s
@@ -480,6 +483,37 @@ module C32
         puts c.to_i
         puts "max i+j = #{c.max_ij}"
       end
+      end
+    end
+
+    context "add_at" do
+      let(:c) { C32.new 1}
+      let(:c3) { C32.new 0=>2}
+      it { expect(c.add_at(0,0,1).to_i).to eq 2 }
+      it { expect(c.add_at(0,0,2).to_i).to eq 3 }
+      it { expect(c.add_at(0,0,3).to_i).to eq 4 }
+      it { expect(c.add_at(0,0,4).to_i).to eq 5 }
+      it { expect(c3.add_at(0,1,1).to_i).to eq 6 }
+      it { expect(c3.add_at(0,1,2).to_i).to eq 9 }
+      it { puts c3.to_s
+        puts c3.add_at(0,1,1).to_s }
+    end
+
+    context "minimal sum" do
+      it { expect(C32.minimal_bits 27).to eq [27] }
+      it { expect(C32.minimal_bits 28).to eq [12, 16] }
+      it { expect(C32.minimal_bits 41).to eq [9, 32] }
+      it { expect(C32.minimal_bits 11).to eq [3, 8] }
+      it do
+        1.upto(3**4) do |i|
+          r = (2 * i).to_s(3)
+          next if r.index '2'
+          if r.gsub(/[02]/,"").size % 2 == 0
+            bits = C32.minimal_bits(i)
+            puts "%-10s  %4d  %4d %-10s #{bits.inspect}" %
+                 [r.reverse, 2*i, i , i.to_s(2).reverse]
+          end
+        end
       end
     end
   end

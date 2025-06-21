@@ -322,16 +322,26 @@ module C32
     end
 
     def add_at i, j, rv
+      return self if rv.zero?
       while @tbl.size - 1 < i + @zero
         @tbl.push 0
       end
-      bit = @tbl[@zero + i] & (1 << j)
+      bit = (@tbl[@zero + i] & (1 << j)) >> j
+      #puts "#{i}:  bit = #{bit} rv = #{rv}"
       if bit.zero?
-        @tbl[@zero + i] |= (1 << j)
-        return [i, j]
+        #puts "#{i}:    #{@tbl[@zero + i].to_s(2).reverse}"
+        @tbl[@zero + i] |= ((rv & 1) << j)
+        #puts "#{i}:    #{@tbl[@zero + i].to_s(2).reverse}"
+        return add_at(i + 1, j, rv >> 1)
       end
-      @tbl[@zero + i] ^= (1 << j)
-      add_at i + 1, j, rv
+      #puts "#{i}:  rv = #{rv}"
+      unless (rv & 1).zero?
+        #puts "#{i}:    both"
+        @tbl[@zero + i] ^= (1 << j)
+        rv += 2
+        #puts "  both #{rv}  #{@tbl[@zero + i].to_s(2).reverse}"
+      end
+      return add_at(i + 1, j, rv >> 1)
     end
 
     def add_binary_column rv, col=0
@@ -575,7 +585,7 @@ module C32
       r
     end
 
-    def rotate
+    def rotate_trap
       puts "rotate"
       check_trapezoid
       exp = to_i
@@ -876,18 +886,70 @@ module C32
       self
     end
 
+    def rotate_to_col_0
+      v = @tbl[@zero - 1].from_3
+      add_at 0, 0, v / 2
+      @tbl[@zero - 1] = 0
+    end
+
+    def rotate_push_up
+      puts to_s
+      exp = to_i
+      v = @tbl[@zero - 1]
+      j = 0
+      while 0 < v
+        bit = v & 1
+        v >>= 1
+        if bit == 1
+          add_at 0, j, 2
+          #puts "add #{j} 2"
+          bit = v & 1
+          v >>= 1
+          j += 1
+          while bit == 0 && 0 < v
+            add_at 0, j, 1
+            #puts "add #{j}"
+            bit = v & 1
+            v >>= 1
+            j += 1
+          end
+        end
+        j += 1
+      end
+      @tbl[@zero - 1] = 0
+      #puts "-"*10
+      #puts to_s
+      raise "#{exp} #{to_i}" unless exp == to_i
+    end
+
+    def rotate_min_bits
+      exp = to_i
+      v = @tbl[@zero - 1].from_3 / 2
+      return if v == 0
+      bits = self.class.minimal_bits(v)
+      raise "cain" unless v == bits.sum
+      bits.each do |x|
+        ij = x.to_ij
+        add_at *ij, 1
+      end
+      @tbl[@zero - 1] = 0
+      raise "#{exp} #{to_i}" unless exp == to_i
+    end
+
+    def rotate mul=false
+      rotate_min_bits
+      #if mul
+      #  rotate_to_col_0
+      #else
+      #  rotate_push_up
+      #end
+    end
+
     def iter
-      check_trapezoid
       if to_i % 2 == 1
-        puts "************ #{to_i}"
-        puts to_s
-        m = mul3
-        puts to_s
-        a = m.add1
-        puts to_s
-        a.div2.rotate
+        mul3.add1.div2.rotate(true)
       else
-        div2.rotate
+        div2.rotate(false)
       end
     end
 
@@ -896,6 +958,32 @@ module C32
       while 1 < n
         yield self
         iter
+        n = to_i
+      end
+      yield self
+      self
+    end
+
+    def backward
+      @dir = :b
+    end
+    def iterate_fb &block
+      n = to_i
+      @dir = :f
+      stack = [[@tbl.dup, @zero]]
+      while 1 < n
+        yield self
+        if @dir == :b
+          if 1 < stack.size
+            @tbl, @zero = stack.pop
+          else
+            @tbl, @zero = stack.first
+          end
+          @dir = :f
+        else
+          stack.push [@tbl.dup, @zero]
+          iter
+        end
         n = to_i
       end
       yield self
@@ -927,6 +1015,35 @@ module C32
         end
       end
       [stats, x, max_width]
+    end
+
+    def self.minimal_rep_rec x, i, j, indent=""
+      return nil if i < 0 || j < 0
+      return [] if x == 0
+      v = 2**i * 3**j
+      return [[i,j]] if x == v
+      puts "#{indent}#{x}  v:#{v}"
+      results = [
+        minimal_rep_rec(x, i - 1, j, "#{indent}  "),
+        minimal_rep_rec(x, i, j - 1, "#{indent}  ")
+      ]
+      if v < x
+        puts "#{indent}#{x}  v:#{v}  trying #{v}"
+        results << minimal_rep_rec(x - v, i - 1, j, "#{indent}  ")
+        results.last.push [i, j] if results.last
+        results << minimal_rep_rec(x - v, i, j - 1, "#{indent}  ")
+        results.last.push [i, j] if results.last
+        puts "#{indent}#{x}  v:#{v}  trying #{v}  #{results.inspect}"
+      end
+      results.compact!
+      puts "#{x}  v:#{v} #{indent}#{results.inspect}"
+      return nil if results.empty?
+      return results.min{|a, b| a.size <=> b.size}
+    end
+
+    def self.minimal_rep n, i, j
+      @mr_memo ||= {}
+      minimal_rep_rec n, i, j
     end
 
     def self.minimal_bits_rec n, idx, values, bound=9999999, indent=""
@@ -975,11 +1092,12 @@ module C32
       @calls
     end
     def self.minimal_bits n
+      return [1] if n == 1
       max_j = (Math.log(n)/Math.log(3)).floor.to_i
       values = []
       max_j.downto(0) do |j|
         v = 3**j
-        while v < n
+        while v <= n
           values.push v
           v *= 2
         end

@@ -59,7 +59,7 @@ module C32
       d = c.dimensions
       exp_max = 3*(3**(i+2) - 1) / 2 - 2**(i+3) - 1 - 2*3**(i + 1)
       puts "%2d %6.3f %6.3f %2d %2d x %2d" % [i, vbits, vtrits, max_v_bits, d.first, d.last]
-      puts "   #{max_v} < #{exp_max}"
+      #puts "   #{max_v} < #{exp_max}"
       STDOUT.flush
       if d.first > d.last + 2 || d.last > i
         #raise "cain"

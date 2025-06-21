@@ -88,4 +88,20 @@ class Integer
     return 1 if self <= 2
     (Math.log(self) / Math.log(3)).ceil
   end
+
+  def to_ij
+    i = 0
+    v = self
+    while v % 2 == 0
+      i += 1
+      v >>= 1
+    end
+    j = 0
+    while 1 < v
+      raise "#{self} is not a 32-integer place value" unless v % 3 ==0
+      v = v / 3
+      j += 1
+    end
+    [i, j]
+  end
 end

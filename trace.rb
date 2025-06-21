@@ -6,8 +6,14 @@ module C32
   m = 3
   n = 3
   bits = nil
+  h = {}
 
   case ARGV[0]
+  when /\d+:\d+/
+    while /(\d+):(\d+)/ =~ ARGV[0]
+      h[$1.to_i] = $2.to_i
+      ARGV.shift
+    end
   when /\d+/
     n = ARGV[0].to_i
   when /--max/
@@ -15,13 +21,21 @@ module C32
   end
 
   w = n.size2
-  c = C32.new n
-  c.iterate do |c|
+  if h.empty?
+    c = C32.new n
+  else
+    c = C32.new **h
+  end
+  c.iterate_fb do |c|
     system 'clear'
     puts c.to_s
     puts " " * w + " |"
     puts "value = #{c.to_i}"
     puts "=" * w
-    STDIN.gets
+    q = STDIN.gets
+    exit unless q
+    if q.strip == "b"
+      c.backward
+    end
   end
 end
