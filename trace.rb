@@ -30,7 +30,7 @@ module C32
     system 'clear'
     puts c.to_s
     puts " " * w + " |"
-    puts "value = #{c.to_i}"
+    puts "value = #{c.to_i}    width = #{c.width}/#{c.fixed_width}"
     puts "=" * w
     q = STDIN.gets
     exit unless q

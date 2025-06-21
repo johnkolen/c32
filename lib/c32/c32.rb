@@ -56,10 +56,13 @@ module C32
           end
         end
       end
-      @width = to_i.size2
-      @height = width + 2
+      @width = (Math.log(3)*to_i.size2/Math.log(2)).ceil
+      @height = 2 * @width
       @tbl.unshift 0
       @zero += 1
+      while @tbl.size < @height + 1
+        @tbl.push 0
+      end
       @max_side = 0
     end
 
