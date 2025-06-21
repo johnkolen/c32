@@ -86,7 +86,7 @@ class Integer
 
   def size3
     return 1 if self <= 2
-    (Math.log(self) / Math.log(3)).ceil
+    (Math.log(self) / Math.log(3) +0.000001).ceil
   end
 
   def to_ij
