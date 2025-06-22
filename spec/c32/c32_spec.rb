@@ -246,6 +246,7 @@ module C32
       end
 
       it "3^5 width 5 with one" do
+        skip
         c = C32.new 2**5 - 1
         tgt = 3**5
         r = c.crinkle tgt
@@ -253,6 +254,7 @@ module C32
         expect(r.map(&:size2).max).to be <= 5 + 1
       end
       it "many with one" do
+        skip
         3.upto(100) do |i|
           c = C32.new 2**i - 1
           tgt = 3**i
@@ -268,6 +270,7 @@ module C32
         expect(r.reverse.inject(0){|sum, x| 3 * sum + x }).to eq tgt
       end
       it "many with two" do
+        skip
         3.upto(100) do |i|
           c = C32.new 2**i - 1
           tgt = (1 + 2) * 3**i

@@ -56,7 +56,8 @@ module C32
           end
         end
       end
-      @width = (Math.log(3)*to_i.size2/Math.log(2)).ceil
+      #@width = (Math.log(3)*to_i.size2/Math.log(2)).ceil
+      @width = to_i.size2
       @height = 2 * @width
       @tbl.unshift 0
       @zero += 1
@@ -368,7 +369,7 @@ module C32
     end
 
     # v is base-3 rep
-    def add_col_at i, j, v
+    def add_row_at i, j, v
       while 0 < v
         add_at i, j, 1 if v & 1 == 1
         v >>= 1
@@ -699,10 +700,20 @@ module C32
       end
       raise "cain" unless r
     end
+
     def check_width
       if @width < width
+        puts "*" * 10
         puts to_s
         raise "width broken #{@width} < #{width}"
+      end
+    end
+
+    def check_height
+      if 2 * @width + @zero < @tbl.size
+        puts "*" * 10
+        puts to_s
+        raise "height broken #{2 * @width} < #{@tbl.size - @zero}"
       end
     end
 
@@ -956,7 +967,8 @@ module C32
       if mul
         mask = 2**@width - 1
         t = 1
-        (@zero...@tbl.size).each do |i|
+        sum = 0
+        (@zero...@tbl.size).each do |idx|
           i = idx - @zero
           v = @tbl[idx] >> @width
           if 0 < v
@@ -973,10 +985,12 @@ module C32
         add_row_at @width + 1, 0, u2
       end
       raise "#{exp} #{to_i}" unless exp == to_i
+      check_width
     end
 
     def rotate mul=false
-      rotate_min_bits
+      rotate_ell mul
+      #rotate_min_bits
       #if mul
       #  rotate_to_col_0
       #else
