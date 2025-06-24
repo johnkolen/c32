@@ -84,6 +84,8 @@ module C32
 
     def set_fixed_width n
       @width = n
+      @height = 2 * @width
+      @tbl.pop while @zero + @height < @tbl.size
     end
 
     def dimensions
@@ -749,6 +751,7 @@ module C32
       j = 0
       while j < @width
         unless ((@tbl[idx] || 0) >> j).zero?
+          puts to_s
           raise "bad h_w_w row #{idx - @zero} #{@tbl[idx].to_s(2).reverse}"
         end
         j += 1
@@ -756,6 +759,7 @@ module C32
       end
       (0...@width).each do |i|
         unless ((@tbl[i + @zero] || 0) >> @width).zero?
+          puts to_s
           raise "bad h_w_w row #{i} #{@tbl[i + @zero].to_s(2).reverse}"
         end
       end
@@ -1065,6 +1069,7 @@ module C32
     def backward
       @dir = :b
     end
+
     def iterate_fb &block
       n = to_i
       @dir = :f
