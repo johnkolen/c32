@@ -32,6 +32,7 @@ module C32
     puts " " * w + " |"
     puts "value = #{c.to_i}    width = #{c.width}/#{c.fixed_width}"
     puts "=" * w
+    puts "info: #{c.ones} / #{c.used}/ #{c.bits}   #{c.rsum}"
     q = STDIN.gets
     exit unless q
     if q.strip == "b"

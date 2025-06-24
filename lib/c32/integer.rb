@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class Integer
-  def bits
+  def ones
     x = self
     c = 0
     while 0 < x

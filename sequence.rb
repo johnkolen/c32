@@ -10,6 +10,7 @@ module C32
   end
   c = C32.new(n)
   c.iterate do |c|
-    puts c.to_s
+    # puts c.to_s
+    puts "#{c.to_i} #{c.ones} #{c.used} #{c.bits}   #{c.rsum}"
   end
 end

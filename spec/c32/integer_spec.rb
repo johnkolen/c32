@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 RSpec.describe Integer do
-  it { expect(0.bits).to eq 0 }
-  it { expect(2.bits).to eq 1 }
-  it { expect(6.bits).to eq 2 }
-  it { expect(7.bits).to eq 3 }
+  it { expect(0.ones).to eq 0 }
+  it { expect(2.ones).to eq 1 }
+  it { expect(6.ones).to eq 2 }
+  it { expect(7.ones).to eq 3 }
   it { expect(1.from_3).to eq 1 }
   it { expect(2.from_3).to eq 3 }
   it { expect(4.from_3).to eq 9 }

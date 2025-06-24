@@ -296,6 +296,26 @@ module C32
       puts c.to_s
     end
 
+    context "check_h_w_w" do
+      it "6 x 3" do
+        c = C32.new 7
+        (0..2).each do |i|
+          c.set_at 5 - i, i, 1
+          expect{ c.check_h_w_w }.not_to raise_error
+          c.set_at 6 - i, i, 1
+          expect{ c.check_h_w_w }.to raise_error(String)
+          c.set_at 6 - i, i, 0
+        end
+        (0..2).each do |i|
+          c.set_at i, 2, 1
+          expect{ c.check_h_w_w }.not_to raise_error
+          c.set_at i, 3, 1
+          expect{ c.check_h_w_w }.to raise_error(String)
+          c.set_at i, 3, 0
+        end
+      end
+    end
+
     context "row col sums" do
       let(:c) { C32.new 0=>7, 2=>3 }
       it {expect(c.row_sum(0)).to eq 13}
@@ -331,6 +351,9 @@ module C32
         r << C32.calls
         puts r.inspect
         expect(C32.minimal_bits 4616).to eq [8, 4608]
+      end
+      it "busted" do
+        expect(C32.minimal_bits 487).to eq [64, 72, 108, 243]
       end
     end
     context "paper" do
