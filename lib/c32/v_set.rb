@@ -6,11 +6,20 @@ module C32
     def initialize *vals, **options
       @values = *vals.dup
       if options[:range]
+        unless options[:range].is_a? Range
+          raise "range is not a range: #{options[:range].inspect}"
+        end
         @range = options[:range]
       else
+        @values.sort!
         if @values.first
           x = @values.shift
-          @range = x..x
+          rmin = x
+          rmax = x
+          while !@values.empty? && rmin <= @values.first && @values.first <= rmax + 1
+            rmax = @values.shift
+          end
+          @range = rmin..rmax
         else
           @range = nil
         end
@@ -35,6 +44,10 @@ module C32
       end
     end
 
+    def member? v
+      @range.member?(v) || @values.member?(v)
+    end
+
     def << v
       unless @range.member? v
         @values << v
@@ -42,9 +55,9 @@ module C32
     end
 
     def map *args, &block
-      rmin = yield @range.min
-      rmax = yield @range.max
-      VSet.new *@values.map(*args, &block), range: rmin..rmax
+      rv = []
+      @range.each{|x| rv << yield(x) }
+      VSet.new *rv, *@values.map(*args, &block)
     end
 
     def each *args, &block
@@ -60,7 +73,7 @@ module C32
         rmax = [@range.max, otr.range.max].max
         ary = []
         @values.union(otr.values).sort.each do |x|
-          next if r.member? x
+          next if rmin <= x && x <= rmax
           if rmax + 1 == x
             rmax = x
             next
@@ -96,7 +109,7 @@ module C32
     end
 
     def - otr
-      VSet.new to_a - otr.to_a
+      rv = VSet.new(*(to_a - otr.to_a))
     end
 
     def inspect

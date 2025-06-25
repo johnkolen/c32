@@ -9,7 +9,7 @@ module C32
   action = :one
   case ARGV[0]
   when /\d+/
-    n = ARGV[0].to_i
+    m = n = ARGV[0].to_i
   when /--table/
     n = ARGV[1].to_i
     m = (ARGV[2] || m).to_i
