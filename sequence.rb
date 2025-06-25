@@ -17,11 +17,13 @@ module C32
     n = VALUES[(ARGV[0] || 3).to_i - 3]
   end
 
+
   case action
   when :c32
     c = C32.new(n)
     c.iterate do |c|
-      puts c.to_s
+      # puts c.to_s
+      puts "#{c.to_i} #{c.ones} #{c.used} #{c.bits}   #{c.rsum}"
     end
   when :collatz
     c = Collatz.new(n)

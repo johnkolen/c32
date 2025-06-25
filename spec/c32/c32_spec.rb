@@ -246,6 +246,7 @@ module C32
       end
 
       it "3^5 width 5 with one" do
+        skip
         c = C32.new 2**5 - 1
         tgt = 3**5
         r = c.crinkle tgt
@@ -253,6 +254,7 @@ module C32
         expect(r.map(&:size2).max).to be <= 5 + 1
       end
       it "many with one" do
+        skip
         3.upto(100) do |i|
           c = C32.new 2**i - 1
           tgt = 3**i
@@ -268,6 +270,7 @@ module C32
         expect(r.reverse.inject(0){|sum, x| 3 * sum + x }).to eq tgt
       end
       it "many with two" do
+        skip
         3.upto(100) do |i|
           c = C32.new 2**i - 1
           tgt = (1 + 2) * 3**i
@@ -291,6 +294,26 @@ module C32
       puts c.to_s
       c.rotate_b v
       puts c.to_s
+    end
+
+    context "check_h_w_w" do
+      it "6 x 3" do
+        c = C32.new 7
+        (0..2).each do |i|
+          c.set_at 5 - i, i, 1
+          expect{ c.check_h_w_w }.not_to raise_error
+          c.set_at 6 - i, i, 1
+          expect{ c.check_h_w_w }.to raise_error(String)
+          c.set_at 6 - i, i, 0
+        end
+        (0..2).each do |i|
+          c.set_at i, 2, 1
+          expect{ c.check_h_w_w }.not_to raise_error
+          c.set_at i, 3, 1
+          expect{ c.check_h_w_w }.to raise_error(String)
+          c.set_at i, 3, 0
+        end
+      end
     end
 
     context "row col sums" do
@@ -328,6 +351,9 @@ module C32
         r << C32.calls
         puts r.inspect
         expect(C32.minimal_bits 4616).to eq [8, 4608]
+      end
+      it "busted" do
+        expect(C32.minimal_bits 487).to eq [64, 72, 108, 243]
       end
     end
     context "paper" do

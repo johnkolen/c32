@@ -56,7 +56,8 @@ module C32
           end
         end
       end
-      @width = (Math.log(3)*to_i.size2/Math.log(2)).ceil
+      #@width = (Math.log(3)*to_i.size2/Math.log(2)).ceil
+      @width = to_i.size2
       @height = 2 * @width
       @tbl.unshift 0
       @zero += 1
@@ -83,10 +84,31 @@ module C32
 
     def set_fixed_width n
       @width = n
+      @height = 2 * @width
+      @tbl.pop while @zero + @height < @tbl.size
     end
 
     def dimensions
       [@tbl.size - @zero, width]
+    end
+
+    def ones
+      @tbl.sum(&:ones)
+    end
+
+    def used
+      @tbl.reverse.inject(0) do |sum, x|
+        next sum if x.zero? && sum == 0
+        sum += x.size2
+      end
+    end
+
+    def bits
+      @height * @width - @width * (@width - 1) / 2
+    end
+
+    def rsum
+      @tbl.sum
     end
 
     def fill_with values
@@ -364,6 +386,15 @@ module C32
         end
         rv >>= 1
         idx += 1
+      end
+    end
+
+    # v is base-3 rep
+    def add_row_at i, j, v
+      while 0 < v
+        add_at i, j, 1 if v & 1 == 1
+        v >>= 1
+        j += 1
       end
     end
 
@@ -690,10 +721,47 @@ module C32
       end
       raise "cain" unless r
     end
+
     def check_width
       if @width < width
+        puts "*" * 10
         puts to_s
         raise "width broken #{@width} < #{width}"
+      end
+    end
+
+    def check_height
+      if 2 * @width + @zero < @tbl.size
+        puts "*" * 10
+        puts to_s
+        raise "height broken #{2 * @width} < #{@tbl.size - @zero}"
+      end
+    end
+
+    def check_h_w_w
+      unless @height <= @tbl.size - @zero
+        @tbl[(@height + @zero)...@tbl.size] do |value|
+          unless value.zero?
+            puts to_s
+            raise "bad h_w_w #{value.to_s(2).reverse}"
+          end
+        end
+      end
+      idx = @height + @zero
+      j = 0
+      while j < @width
+        unless ((@tbl[idx] || 0) >> j).zero?
+          puts to_s
+          raise "bad h_w_w row #{idx - @zero} #{@tbl[idx].to_s(2).reverse}"
+        end
+        j += 1
+        idx -= 1
+      end
+      (0...@width).each do |i|
+        unless ((@tbl[i + @zero] || 0) >> @width).zero?
+          puts to_s
+          raise "bad h_w_w row #{i} #{@tbl[i + @zero].to_s(2).reverse}"
+        end
       end
     end
 
@@ -939,8 +1007,39 @@ module C32
       raise "#{exp} #{to_i}" unless exp == to_i
     end
 
+    def rotate_ell mul=false
+      exp = to_i
+      v = @tbl[@zero - 1].from_3 / 2
+      add_at 0, 0, v
+      @tbl[@zero - 1] = 0
+      if mul
+        mask = 2**@width - 1
+        t = 1
+        sum = 0
+        (@zero...@tbl.size).each do |idx|
+          i = idx - @zero
+          v = @tbl[idx] >> @width
+          if 0 < v
+            raise "cain" if 1 < v
+            sum += t
+          end
+          @tbl[idx] &= mask
+          t <<= 1
+        end
+        sum *= 3**@width
+        add_at 0, 0, sum % (mask + 1)
+        u1, u2 = (sum / (mask + 1)).to_3
+        add_row_at @width, 0, u1
+        add_row_at @width + 1, 0, u2
+      end
+      raise "#{exp} #{to_i}" unless exp == to_i
+      check_width
+    end
+
     def rotate mul=false
-      rotate_min_bits
+      rotate_ell mul
+      check_h_w_w
+      #rotate_min_bits
       #if mul
       #  rotate_to_col_0
       #else
@@ -959,17 +1058,18 @@ module C32
     def iterate &block
       n = to_i
       while 1 < n
-        yield self
+        yield self if block_given?
         iter
         n = to_i
       end
-      yield self
+      yield self if block_given?
       self
     end
 
     def backward
       @dir = :b
     end
+
     def iterate_fb &block
       n = to_i
       @dir = :f
@@ -991,10 +1091,6 @@ module C32
       end
       yield self
       self
-    end
-
-    def bits
-      @tbl.sum(&:bits)
     end
 
     def self.collatz n
@@ -1094,17 +1190,46 @@ module C32
     def self.calls
       @calls
     end
-    def self.minimal_bits n
+
+    def self.minimal_bits n, **options
       return [1] if n == 1
-      max_j = (Math.log(n)/Math.log(3)).floor.to_i
+      @mb_memo ||= {}
+      rect = options[:rect]
+      rv = @mb_memo[[n, rect]]
+      return rv if rv
+
       values = []
-      max_j.downto(0) do |j|
-        v = 3**j
-        while v <= n
-          values.push v
-          v *= 2
+      if options[:rect]
+        u, v = options[:rect]
+        u.times do |i|
+          y = 2**i
+          break if n < y
+          v.times do |j|
+            z = y * 3**j
+            break if n < z
+            values << z
+          end
+        end
+        y = 2**u
+        z = 3**(v - 1)
+        u.times do |i|
+          break if n < y
+          a = y * z
+          values << a if a <= n
+          y <<= 1
+          z = z / 3
+        end
+      else
+        max_j = (Math.log(n)/Math.log(3)).ceil.to_i
+        max_j.downto(0) do |j|
+          v = 3**j
+          while v <= n
+            values.push v
+            v *= 2
+          end
         end
       end
+
       s = 0
       values = values.sort.map{ |x| [x, s += x] }
       @calls = 0
@@ -1115,9 +1240,9 @@ module C32
         bound += 1 unless nx % 3 == 0
         nx = nx / 3
       end
-      rv = minimal_bits_rec n, values.size - 1, values, bound
+      rv = minimal_bits_rec n, values.size - 1, values, 99999 #bound
       #puts @memo.inspect
-      rv
+      @mb_memo[[n, rect]] = rv
     end
 
     def self.footprint n

@@ -23,15 +23,19 @@ module C32
   w = n.size2
   if h.empty?
     c = C32.new n
+    c.set_fixed_width 3
   else
     c = C32.new **h
   end
+  w = c.fixed_width
   c.iterate_fb do |c|
     system 'clear'
     puts c.to_s
     puts " " * w + " |"
     puts "value = #{c.to_i}    width = #{c.width}/#{c.fixed_width}"
     puts "=" * w
+    puts "info: #{c.ones} / #{c.used}/ #{c.bits}   #{c.rsum}"
+    puts "[#{w},#{w-1}] = #{c.get_at w, w - 1}"
     q = STDIN.gets
     exit unless q
     if q.strip == "b"
