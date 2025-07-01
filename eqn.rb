@@ -313,7 +313,13 @@ class Matrix < Array
     self
   end
 
-  def remove_gcd row
+  def remove_gcd row=nil
+    unless row
+      each_with_index do |row, idx|
+        self[idx] = remove_gcd row
+      end
+      return
+    end
     nz = row.select{|x| !x.zero? }
     return row if nz.empty?
     c = nz.inject(nz.max){|g, x| g.gcd x}
@@ -324,8 +330,22 @@ class Matrix < Array
     row.all?(&:zero?)
   end
 
+  def row_nonnegative? row
+    row.all?{|x| x.zero? || x.positive?}
+  end
+  def row_nonpositive? row
+    row.all?{|x| x.zero? || x.negative?}
+  end
+
+  def row_active row
+    rv = []
+    row.each_with_index{|x, j| rv << j if x.nonzero?}
+    rv
+  end
+
   def summary_eq
     res = []
+    make_labels unless @labels
     each do |row|
       lhs = []
       rhs = []
@@ -334,6 +354,7 @@ class Matrix < Array
       row.each_with_index do |x, i|
         next if x.zero?
         sym = i < @aug ? "x[#{i}]" : "e[#{i - @aug}]"
+        sym = @labels[i] if @labels
         if 0 < x && sym[0] == "x" || (x < 0 && sym[0] == "x" && lhs.empty?)
           if x == 1
             lhs << sym
@@ -353,11 +374,18 @@ class Matrix < Array
         rx = []
         lhs.each do |x|
           if x[0] == '-'
-            rhs.unshift x.sub('-', '')
+            rhs.unshift x.sub('-', '').sub(/^1\*/, '')
             rx << x
           end
         end
         rx.each{|x| lhs.delete(x)}
+      elsif lhs.size == 1
+        x = lhs.first
+        if x[0] == '-' && rhs.size == 1 && rhs[0].is_a?(Integer)
+          x.sub!("-", "")
+          x.sub!(/^1\*/, "")
+          rhs[0] *= -1
+        end
       end
       rhs << 0 if rhs.empty?
       lhs << 0 if lhs.empty?
@@ -482,6 +510,126 @@ class Matrix < Array
     finished.concat zero
     [fr, Matrix.new(finished, aug: @aug)]
   end
+
+  def zero_column j
+    each do |row|
+      row[j] = 0
+    end
+  end
+
+  attr_accessor :labels
+  def make_labels
+    @labels = []
+    @aug.times do |i|
+      @labels << "x[#{i}]"
+    end
+    (@aug...first.size).each do |i|
+      @labels << "e[#{i - @aug}]"
+    end
+    @labels.pop
+    @labels.push "1"
+  end
+
+  def remove_zero_cols
+    s = [true] * first.size
+    each do |row|
+      row.each_with_index do |x, i|
+        s[i] &= x.zero?
+      end
+    end
+    remove = []
+    s.each_with_index do |x, i|
+      remove << i if x
+    end
+    remove.pop if remove.last == first.size - 1
+    remove.reverse!
+    each do |row|
+      remove.each{|i| row.delete_at i}
+    end
+    if @labels
+      remove.each{|i| @labels.delete_at i}
+    end
+    remove.each do |i|
+      @aug -= 1 if i < @aug
+    end
+  end
+
+  def slack_assignments
+    assignments = {}
+    make_labels unless @labels
+    remove_zero_cols
+    u = 0
+    outer = true
+    while outer
+      outer = false
+      changed = true
+      while changed
+        changed = false
+        remove = []
+        each_with_index do |row, idx|
+          if row_zero? row[0...@aug]
+            puts row.inspect
+            rest = row[@aug...row.size]
+            puts rest.inspect
+            if row_nonnegative?(rest) || row_nonpositive?(rest)
+              remove << idx
+              changed = true
+              rest.each_with_index do |x, j|
+                if x.nonzero?
+                  v = @labels[j + @aug]
+                  puts "#{v} == 0"
+                  assignments[v] = "0"
+                  zero_column @aug + j
+                end
+              end
+            else
+              active = row_active(rest)
+              if active.size == 2
+                changed = true
+                active[0] += @aug
+                active[1] += @aug
+                v0 = @labels[active[0]]
+                v1 = @labels[active[1]]
+                puts "#{v0} == #{v1}"
+                assignments[v0] = v1
+                c0 = row[active[0]]
+                c1 = row[active[1]]
+                each do |rx|
+                  rx[active[0]] = rx[active[0]] * c1 + rx[active[1]] * c0
+                  rx[active[1]] = 0
+                end
+              end
+            end
+          end
+        end
+        remove.reverse.each do |idx|
+          raise "wtf" unless row_zero? self[idx]
+          delete_at idx
+        end
+        if changed
+          remove_zero_cols
+        end
+        #(0...size).reverse.each do |idx|
+        #p  if row_zero?
+      end
+      remove_gcd
+      if @aug + 1 < first.size
+        j = first.size - 2
+        u += 1
+        v = @labels[j]
+        puts "#{v} == #{u}"
+        assignments[v] = u.to_s
+        ones = first.size - 1
+        each do |rx|
+          rx[ones] += rx[j] * u
+          rx[j] = 0
+        end
+        remove_zero_cols
+        outer = true
+      end
+    end
+    assignments
+  end
 end
 
 #z = Term.minimal(28)
@@ -560,21 +708,23 @@ end
 puts "Found #{trans.size} transitions"
 
 tmatrix = Matrix.new
-e = [-1, 0]
+e = [1, 0]
 puts "Finding transitions"
 trans.each do |u, v|
   #puts "#{u} -> #{v}"
-  if false
+  if true
     u2 = Term.twos(u)
     u2n = u2.iter
-    puts "  #{u2} => #{u2n}"
+    #puts "  #{u2} => #{u2n}"
     raise "bad u2 trans #{u2n.to_i} != #{v}" unless u2n.to_i == v
+    tmatrix.add_row u2, u2n, e
   end
-  if false
+  if true
     u3 = Term.threes(u)
     u3n = u2.iter
-    puts "  #{u3} => #{u3n}"
+    #puts "  #{u3} => #{u3n}"
     raise "bad u3 trans #{u3n.to_i} != #{v}" unless u3n.to_i == v
+    tmatrix.add_row u3, u3n, e
   end
   if true
     um = Term.minimal(u)
@@ -583,7 +733,7 @@ trans.each do |u, v|
     raise "bad um trans #{umn.to_i} != #{v}" unless umn.to_i == v
     tmatrix.add_row um, umn, e
   end
-  e = ([0]*e.size).push -1
+  e = ([0]*e.size).push 1
   e.push 0
 end
 puts "Solving transition matrix..."
@@ -597,6 +747,21 @@ puts "=" * 50
 puts matrix_soln.summary_eq if matrix_soln.size < 10
 puts tmatrix_soln.summary_eq if tmatrix_soln.size < 15
 puts "=" * 50
+all = tmatrix_soln.summary_eq.split("; ")
+all.each do |eqn|
+  puts eqn if eqn.index("x")
+end
+a = tmatrix_soln.slack_assignments
+puts tmatrix_soln.labels.inspect
+puts tmatrix_soln.to_s
+puts a.inspect
+tmatrix_soln.summary_eq.split("; ").each do |eqn|
+  puts eqn
+end
+
+############################################
+exit
+
 all = matrix_soln.summary_eq.split("; ")
 all.concat tmatrix_soln.summary_eq.split("; ")
 all.each do |eqn|
@@ -613,9 +778,13 @@ puts final.to_s
 final.summary_eq.split("; ") do |eqn|
   puts eqn
 end
-
-############################################
-exit
+a = final.slack_assignments
+puts final.to_s
+puts final.labels.inspect
+puts a.inspect
+final.summary_eq.split("; ") do |eqn|
+  puts eqn
+end
 
 @fact = [1, 1]
 def fact n

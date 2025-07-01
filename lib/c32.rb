@@ -5,6 +5,7 @@ require_relative "c32/area.rb"
 require_relative "c32/c32.rb"
 require_relative "c32/collatz.rb"
 
+require_relative "c32/t235"
 require_relative "c32/v_set"
 require_relative "c32/version"
 
