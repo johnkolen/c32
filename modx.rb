@@ -13,4 +13,4 @@ m += 1 if m.even?
 
 z = C32::ModX.new m
 
-z.table 10
+z.table 30
