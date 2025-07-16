@@ -11,17 +11,23 @@ if n < m
 end
 m += 1 if m.even?
 
-e = C32::ExpDio.new m
-puts "#{e.value}:  #{e}"
-e.iter!
-puts "#{e.value}:  #{e}"
-e.iter!
-puts "#{e.value}:  #{e}"
-e.iter!
-puts "#{e.value}:  #{e}"
+if m == n
+  e = C32::ExpDio.new m
+  e.iterate! do |e|
+    puts "#{e.value}:  #{e}"
+  end
+  raise "bad hyp" unless e.hyp?
+  exit
+end
+m.step(n, 2) do |k|
+  e = C32::ExpDio.new k
+  e.iterate!
+  puts "%4d: #{e}" % k
+  raise "bad hyp" unless e.hyp?
+end
 
 puts "=" * 20
-#exit
+exit
 if m == n
   b = C32::T3HBag.new n
   puts "%4d: #{b.normalize}  diff=#{b.diff}" % b.to_i

@@ -83,9 +83,19 @@ module C32
         v = self[k]
         u = (2**-k.i) * c * v
         u = u.to_i if u.denominator == 1
-        "#{u}*3^#{k.i}"
+        log_u = Math.log2(u).to_i
+        if u == 2**log_u
+          "2^#{log_u}*3^#{k.i}"
+        else
+          "#{u}*3^#{k.i}"
+        end
       end.join(" + ")
-      "#{c} = #{x}"
+      log_c = Math.log2(c).to_i
+      if c == 2**log_c
+        "2^#{log_c} = #{x}"
+      else
+        "#{c} = #{x}"
+      end
     end
 
     def diff
